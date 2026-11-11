@@ -1,0 +1,23 @@
+"""Bounded model readiness check for systemd ExecStartPre; no dependencies."""
+import json
+import time
+import urllib.request
+
+
+def main():
+    deadline = time.monotonic() + 120
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    while time.monotonic() < deadline:
+        try:
+            with opener.open('http://127.0.0.1:8090/v1/health', timeout=2) as response:
+                value = json.load(response)
+            if all(value.get(k) is True for k in ('ok', 'embedder', 'reranker')):
+                return
+        except (OSError, ValueError):
+            pass
+        time.sleep(1)
+    raise SystemExit('Embedding/reranker readiness failed within 120 seconds')
+
+
+if __name__ == '__main__':
+    main()

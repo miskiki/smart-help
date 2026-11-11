@@ -1,0 +1,2079 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>智能帮扶政策匹配系统</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  /* 智枢文渊视觉 tokens：页面底 #f7f9f7 / 面板 #fff / 侧栏 #f1f5f2 / 主文字 #23362b
+     次级 #63756a / 辅助 #7d8b81 / 操作 #168b63 / 选中 #e7f4ec / 边框 #e5ebe6 */
+  :root{
+    --wy-page:#f7f9f7;
+    --wy-panel:#ffffff;
+    --wy-sidebar:#f1f5f2;
+    --wy-text:#23362b;
+    --wy-sub:#63756a;
+    --wy-muted:#7d8b81;
+    --wy-accent:#168b63;
+    --wy-accent-strong:#12734f;
+    --wy-soft:#e7f4ec;
+    --wy-line:#e5ebe6;
+    --wy-ok:#1a7f52; --wy-ok-bg:#e7f4ec; --wy-ok-line:#cfe6da;
+    --wy-warn:#8a6417; --wy-warn-bg:#fbf6e9; --wy-warn-line:#ece0c4;
+    --wy-err:#b4453c; --wy-err-bg:#fdf1f0;
+    --wy-panel-soft:#f6faf7;
+    --wy-panel-tint:#f3f8f5;
+    --wy-shadow:0 1px 2px rgba(23,43,77,.04);
+    --wy-r-card:12px; --wy-r-ctl:8px;
+    --wy-chat-w:860px; --wy-chat-gap:12px;
+  }
+  body { font-family:"Microsoft YaHei","PingFang SC","Segoe UI",system-ui,sans-serif;
+    background:var(--wy-page); color:var(--wy-text); font-size:14px; }
+  html, body { height:100%; overflow:hidden; } /* 应用框架锁滚：唯一滚动区是聊天记录 */
+  [v-cloak] { display:none; }
+  button { font-family:inherit; }
+
+  /* ---------- 登录页：白卡片 + 极轻阴影 ---------- */
+  .login-wrap { height:100%; overflow:auto; display:flex; align-items:center; justify-content:center;
+    background:var(--wy-page); padding:20px; }
+  .login-card { width:420px; max-width:100%; background:var(--wy-panel); border:1px solid var(--wy-line);
+    border-radius:var(--wy-r-card); padding:38px 36px; box-shadow:var(--wy-shadow); text-align:center; }
+  .login-card .logo { width:56px; height:56px; margin:0 auto 16px; border-radius:16px;
+    background:var(--wy-soft); border:1px solid #d6e9dd; display:flex; align-items:center;
+    justify-content:center; font-size:24px; color:var(--wy-accent); font-weight:700; }
+  .login-card h1 { font-size:21px; color:var(--wy-text); letter-spacing:1px; }
+  .login-card .sub { font-size:13px; color:var(--wy-muted); margin:8px 0 22px; line-height:1.7; }
+  .login-card input { width:100%; padding:11px 13px; border:1px solid var(--wy-line); border-radius:var(--wy-r-ctl);
+    font-size:14px; margin-bottom:12px; outline:none; background:#fff; color:var(--wy-text); }
+  .login-card input:focus { border-color:var(--wy-accent); box-shadow:0 0 0 3px rgba(22,139,99,.14); }
+  .login-card .btn { width:100%; padding:11px; border:none; border-radius:var(--wy-r-ctl); background:var(--wy-accent);
+    color:#fff; font-size:15px; cursor:pointer; font-weight:600; letter-spacing:6px; }
+  .login-card .btn:hover { background:var(--wy-accent-strong); }
+  .login-card .btn:disabled { background:#a9cfbe; cursor:not-allowed; }
+  .login-card .err { background:var(--wy-err-bg); color:var(--wy-err); border-radius:var(--wy-r-ctl); padding:9px 12px;
+    font-size:13px; margin-bottom:12px; text-align:left; }
+  .login-card .tip { font-size:12px; color:var(--wy-muted); margin-top:16px; }
+  .login-card p[role=status] { font-size:13px; color:var(--wy-sub); margin-top:6px; }
+
+  /* ---------- 主布局（整页固定高度：顶栏/侧栏不动，只有聊天区内部滚动） ---------- */
+  .layout { height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+  header { background:var(--wy-panel); color:var(--wy-text); border-bottom:1px solid var(--wy-line);
+    padding:0 24px; min-height:58px; flex-shrink:0; display:flex; align-items:center;
+    justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  header .brand { display:flex; align-items:center; gap:11px; }
+  header .logo { width:34px; height:34px; border-radius:9px; background:var(--wy-soft);
+    border:1px solid #d6e9dd; display:flex; align-items:center; justify-content:center;
+    color:var(--wy-accent); font-size:16px; font-weight:700; }
+  header .brand b { font-size:17px; letter-spacing:1px; color:var(--wy-text); }
+  header .brand span { font-size:12px; color:var(--wy-muted); margin-left:8px; padding-left:12px;
+    border-left:1px solid var(--wy-line); }
+  header .uinfo { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--wy-sub); }
+  header .uinfo a { color:var(--wy-accent); text-decoration:none; }
+  header .hbtn { border:1px solid var(--wy-line); background:#fff; color:var(--wy-sub);
+    padding:5px 12px; border-radius:var(--wy-r-ctl); cursor:pointer; font-size:12.5px; }
+  header .hbtn:hover { background:var(--wy-soft); border-color:#cfe6da; color:var(--wy-accent); }
+  header .mswitch { position:relative; }
+  header .msmenu { position:absolute; top:38px; right:0; background:var(--wy-panel); border:1px solid var(--wy-line);
+    border-radius:var(--wy-r-card); box-shadow:var(--wy-shadow); min-width:280px; z-index:99;
+    padding:6px; color:var(--wy-text); }
+  header .msitem { padding:9px 12px; border-radius:var(--wy-r-ctl); cursor:pointer; font-size:13px; display:flex;
+    justify-content:space-between; gap:10px; align-items:center; }
+  header .msitem:hover { background:var(--wy-panel-soft); }
+  header .msitem.cur { background:var(--wy-soft); color:var(--wy-accent-strong); font-weight:600; }
+  header .msitem .muted { color:var(--wy-muted); font-size:12px; font-weight:400; }
+  header .mkind { font-style:normal; font-size:11px; padding:0 6px; border-radius:4px;
+    background:var(--wy-sidebar); color:var(--wy-sub); margin-left:6px; }
+  header .mkind.cloud { background:var(--wy-soft); color:var(--wy-accent-strong); }
+  /* 用户菜单：与模型菜单同一交互（点击展开、点外部收起） */
+  header .umenu { min-width:190px; }
+  header .um-name { padding:9px 12px 7px; font-size:12px; color:var(--wy-muted);
+    border-bottom:1px solid var(--wy-line); margin-bottom:5px; }
+  header .msitem.danger { color:var(--wy-err); }
+  header .msitem.danger:hover { background:var(--wy-err-bg); }
+
+  /* 应用框架：顶栏/侧栏固定，无浮层卡片，仅聊天记录内部滚动 */
+  .body { flex:1; display:flex; background:var(--wy-panel);
+    align-items:stretch; min-height:0; overflow:hidden; }
+
+  /* 会话列表（宽度可拖拽，200-420px）：浅色侧栏 + 细线分区 */
+  aside { position:relative; min-width:200px; max-width:420px; flex-shrink:0; background:var(--wy-sidebar);
+    border-right:1px solid var(--wy-line); padding:16px 14px;
+    display:flex; flex-direction:column; min-height:0; }
+  aside .resizer { position:absolute; top:0; right:-3px; width:7px; height:100%; cursor:col-resize;
+    z-index:5; }
+  aside .resizer:hover { background:rgba(22,139,99,.14); }
+  aside .spager { display:flex; align-items:center; justify-content:space-between; gap:6px;
+    margin-top:10px; padding-top:10px; border-top:1px solid var(--wy-line); font-size:12px; color:var(--wy-muted); }
+  aside .spager button { padding:4px 10px; border:1px solid var(--wy-line); background:#fff; border-radius:var(--wy-r-ctl);
+    cursor:pointer; font-size:12px; color:var(--wy-accent); }
+  aside .spager button:hover { border-color:var(--wy-accent); }
+  aside .spager button:disabled { opacity:.45; cursor:default; border-color:var(--wy-line); color:var(--wy-muted); }
+  aside .newbtn { width:100%; padding:10px; border:none; border-radius:var(--wy-r-ctl); cursor:pointer;
+    background:var(--wy-accent); color:#fff; font-size:14px; font-weight:600; letter-spacing:2px; }
+  aside .newbtn:hover { background:var(--wy-accent-strong); }
+  aside .list { flex:1; overflow-y:auto; margin-top:12px; min-height:0; }
+  aside .item { padding:10px 12px; border-radius:var(--wy-r-ctl); cursor:pointer; margin-bottom:2px; }
+  aside .item:hover { background:#e9f1ec; }
+  aside .item.cur { background:var(--wy-soft); box-shadow:inset 3px 0 0 var(--wy-accent); }
+  aside .item .t { font-size:13px; font-weight:600; color:var(--wy-text); overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  aside .item .m { font-size:11.5px; color:var(--wy-muted); margin-top:2px; }
+  aside .empty { font-size:12px; color:var(--wy-muted); text-align:center; padding:24px 0; }
+
+  /* 聊天区：唯一内部滚动区；内容列 860px 居中，与输入条对齐 */
+  main { flex:1; min-width:0; min-height:0; display:flex; flex-direction:column;
+    background:var(--wy-page); overflow:hidden; }
+  .chat { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:var(--wy-chat-gap);
+    background:var(--wy-page); padding:20px 24px; transition:padding-right .18s ease; }
+  .chat-col { flex:1 0 auto; width:100%; max-width:var(--wy-chat-w); margin:0 auto;
+    display:flex; flex-direction:column; gap:var(--wy-chat-gap); }
+  .chat .hint { text-align:center; color:var(--wy-muted); font-size:13.5px; margin:auto; line-height:2; max-width:580px; }
+  .chat .hint b { color:var(--wy-accent); }
+  .msg { max-width:82%; width:fit-content; padding:11px 15px; border-radius:var(--wy-r-card);
+    line-height:1.75; font-size:14px; white-space:pre-wrap; word-break:break-word; }
+  .msg.wide { max-width:100%; width:auto; }
+  .msg.user { min-width:60px; align-self:flex-end; background:var(--wy-soft); color:var(--wy-text);
+    border:1px solid #d6e9dd; border-radius:var(--wy-r-card) var(--wy-r-card) 4px var(--wy-r-card); }
+  .msg.bot { align-self:flex-start; background:var(--wy-panel); border:1px solid var(--wy-line);
+    border-left:3px solid var(--wy-accent); border-radius:var(--wy-r-card); color:var(--wy-text); }
+  .streaming { color:var(--wy-sub); font-size:14px; }
+  /* 思维链面板：思考中单行动态展示最新动作，可展开全部；结束后自动收起、可再点开 */
+  .think { margin:0 0 8px; border:1px solid var(--wy-line); background:var(--wy-panel-soft);
+    border-radius:var(--wy-r-ctl); font-size:12.5px; color:var(--wy-sub); overflow:hidden; }
+  .think-head { display:flex; align-items:center; gap:7px; padding:6px 10px; cursor:pointer; user-select:none; }
+  .think-latest { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--wy-text); }
+  .think-caret { flex-shrink:0; font-size:11.5px; color:var(--wy-accent); }
+  .think-list { list-style:none; margin:0; padding:2px 10px 8px 10px; border-top:1px dashed var(--wy-line); }
+  .think-list li { padding:3px 0; display:flex; align-items:baseline; gap:6px; }
+  .think-ico { flex-shrink:0; font-size:11px; color:var(--wy-accent); }
+  .think-ico.ok { color:var(--wy-ok); }
+  .think-list li.running .think-ico { color:var(--wy-accent); }
+  .think-list li.done .think-ico { color:var(--wy-ok); }
+  .think-list li.err .think-ico { color:var(--wy-err); }
+  .think-ms { margin-left:auto; flex-shrink:0; font-size:11px; color:var(--wy-sub); }
+  .think.finished { background:var(--wy-panel-tint); }
+  .think.finished .think-latest { color:var(--wy-sub); }
+  /* 思考面板 v3：真实动作按时间序平铺（不分组）；旧 .think-list 保留为无 envelope 时的降级样式 */
+  .think-body { border-top:1px dashed var(--wy-line); padding:6px 10px 8px;
+    max-height:260px; overflow-y:auto; }
+  .tl-list { list-style:none; margin:0; padding:1px 0 3px 2px; }
+  .tl-list li { padding:3px 4px; display:flex; align-items:baseline; gap:6px; border-radius:6px; }
+  .tl-list li.tl-run { background:var(--wy-soft); }
+  .tl-list li.tl-run .think-ico { color:var(--wy-accent); }
+  .tl-spin { flex-shrink:0; margin-right:0; width:11px; height:11px; border-width:2px; }
+  .tl-list li.tl-err { background:var(--wy-err-bg); }
+  .tl-list li.tl-err .tl-title { color:var(--wy-err); font-weight:600; }
+  .tl-title { min-width:0; word-break:break-word; }
+  .tl-chips { display:inline-flex; flex-wrap:wrap; gap:4px; }
+  .tl-chip { font-size:11px; color:var(--wy-sub); background:var(--wy-sidebar);
+    border-radius:5px; padding:0 6px; white-space:nowrap; }
+  .tl-err .tl-chip { background:#fff; }
+  .think-ico.skip { color:var(--wy-muted); }
+  .tl-internal { margin:3px 0 2px 2px; }
+  .tl-internal > summary { cursor:pointer; font-size:11.5px; color:var(--wy-muted);
+    padding:2px 0; user-select:none; }
+  .tl-internal > summary:hover { color:var(--wy-accent); }
+  .tl-internal .tl-list { padding-left:6px; }
+  .tl-note { font-size:11.5px; color:var(--wy-muted); padding:2px 2px 3px; }
+  .tl-note-err { font-size:11.5px; color:var(--wy-err); }
+  .tl-foot { display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    border-top:1px dashed var(--wy-line); padding:7px 2px 1px; }
+  .tl-btn { padding:3px 12px; font-size:12px; }
+  .tl-trace { margin-left:auto; font-size:11px; color:var(--wy-muted); cursor:help; }
+  .spinner { display:inline-block; width:13px; height:13px; border:2px solid var(--wy-soft);
+    border-top-color:var(--wy-accent); border-radius:50%; animation:spin .8s linear infinite;
+    vertical-align:-2px; margin-right:7px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  details.ref { margin-top:10px; background:var(--wy-panel-soft); border:1px solid var(--wy-line);
+    border-radius:var(--wy-r-card); padding:8px 11px; }
+  details.ref summary { cursor:pointer; font-size:12.5px; color:var(--wy-accent); font-weight:600; }
+  details.ref .refitem { margin-top:7px; padding:7px 9px; background:#fff; border:1px solid var(--wy-line);
+    border-radius:var(--wy-r-ctl); font-size:12.5px; color:var(--wy-sub); }
+  details.ref .refitem .src { font-weight:600; color:var(--wy-accent-strong); }
+  details.ref .refitem .ex { color:var(--wy-muted); margin-top:3px; }
+  .msg .matched { font-size:12px; color:var(--wy-muted); margin-top:7px; }
+  .dlbtn { display:inline-block; padding:6px 14px; border:1px solid var(--wy-accent); border-radius:var(--wy-r-ctl);
+    background:#fff; color:var(--wy-accent); font-size:13px; cursor:pointer; }
+  .dlbtn:hover { background:var(--wy-soft); }
+  .dlbtn:disabled { color:var(--wy-muted); border-color:var(--wy-line); background:#f4f7f5; cursor:not-allowed; }
+  .chat .err { align-self:center; background:var(--wy-err-bg); color:var(--wy-err); font-size:13px;
+    padding:8px 14px; border-radius:var(--wy-r-ctl); }
+
+  /* ---------- 结果内容组件：建议分析 / 匹配表格 / 政策卡片 ---------- */
+  .ans-md { line-height:1.85; font-size:14px; }
+  .ans-md .md-h { color:var(--wy-text); font-weight:700; margin:10px 0 4px; }
+  .ans-md .md-h:first-child { margin-top:0; }
+  .ans-md ol, .ans-md ul { margin:4px 0 4px 20px; }
+  .ans-md li { margin:2px 0; }
+  .ans-md ul ul { margin:2px 0 2px 18px; }
+  .ans-raw { white-space:pre-wrap; }
+  .md-block { margin-top:10px; background:var(--wy-panel-tint); border:1px solid var(--wy-line);
+    border-left:3px solid var(--wy-accent); border-radius:var(--wy-r-ctl); padding:10px 13px;
+    font-size:13.5px; line-height:1.8; }
+  .md-block .md-h { color:var(--wy-text); font-weight:700; margin:6px 0 3px; }
+  .md-block .md-h:first-child { margin-top:0; }
+  .md-block ul { margin:3px 0 3px 18px; }
+  .md-block div { color:var(--wy-sub); }
+  .table-wrap { margin-top:10px; overflow-x:auto; border:1px solid var(--wy-line); border-radius:var(--wy-r-card); }
+  .match-table { border-collapse:collapse; width:100%; font-size:12px; min-width:1080px; }
+  .match-table th { background:var(--wy-soft); color:var(--wy-accent-strong); padding:7px 9px; text-align:left;
+    white-space:nowrap; font-weight:600; position:sticky; top:0; }
+  .match-table td { border-top:1px solid var(--wy-line); padding:7px 9px; color:var(--wy-text); vertical-align:top; }
+  .match-table tr:nth-child(even) td { background:#f7faf8; }
+
+  /* 结果分区标题 + 政策卡片（是什么 → 能享受什么 → 缺什么 → 详情折叠 → 点卡片预览） */
+  .sec-title { margin-top:14px; font-size:14px; font-weight:700; color:var(--wy-text);
+    display:flex; align-items:center; gap:8px; }
+  .sec-title::before { content:""; width:3px; height:14px; background:var(--wy-accent); border-radius:2px; }
+  .sec-title .sub { font-weight:400; color:var(--wy-muted); font-size:12px; }
+  .cards { display:flex; flex-direction:column; gap:10px; }
+  .pc { border:1px solid var(--wy-line); border-radius:var(--wy-r-card); background:var(--wy-panel);
+    overflow:hidden; cursor:pointer; transition:border-color .15s ease, box-shadow .15s ease; }
+  .pc:hover { border-color:#bcdccd; box-shadow:var(--wy-shadow); }
+  .pc:focus-visible { outline:2px solid rgba(22,139,99,.35); outline-offset:2px; }
+  .pc-head { display:flex; align-items:center; gap:8px; padding:10px 15px; background:var(--wy-panel-soft);
+    border-bottom:1px solid var(--wy-line); flex-wrap:wrap; }
+  .pc-head .pc-name { font-weight:700; color:var(--wy-text); font-size:14.5px; }
+  .pc-chip { font-size:11.5px; padding:1px 8px; border-radius:6px; background:var(--wy-soft);
+    color:var(--wy-accent-strong); white-space:nowrap; }
+  .pc-chip.member { background:var(--wy-sidebar); color:var(--wy-sub); }
+  .pc-chip.enjoyed { background:var(--wy-warn-bg); color:var(--wy-warn); }
+  .pc-chip.named { background:transparent; color:var(--wy-accent); border:1px solid #bcdccd; }
+  .pc-preview-hint { margin-left:auto; font-size:11.5px; color:var(--wy-muted); white-space:nowrap;
+    transition:color .15s ease; }
+  .pc:hover .pc-preview-hint { color:var(--wy-accent); }
+  .pc-body { padding:11px 15px 12px; display:flex; flex-direction:column; gap:9px;
+    font-size:13.5px; line-height:1.7; color:var(--wy-text); }
+  .pc-intro { color:var(--wy-sub); }
+  .pc-benefit { background:var(--wy-panel-tint); border-left:3px solid var(--wy-accent);
+    border-radius:0 var(--wy-r-ctl) var(--wy-r-ctl) 0; padding:8px 12px; }
+  .pc-benefit b { color:var(--wy-accent-strong); }
+  .pc-tags { display:flex; flex-wrap:wrap; gap:6px; }
+  .pc-tag { font-size:12px; padding:2px 10px; border-radius:6px; max-width:100%; }
+  .pc-tag.ok { background:var(--wy-ok-bg); color:var(--wy-ok); border:1px solid var(--wy-ok-line); }
+  .pc-tag.miss { background:var(--wy-warn-bg); color:var(--wy-warn); border:1px solid var(--wy-warn-line); }
+  .pc-detail { border-top:1px dashed var(--wy-line); padding-top:8px; }
+  .pc-detail summary { cursor:pointer; font-size:12.5px; color:var(--wy-accent); font-weight:600; }
+  .pc-detail .pc-dbody { margin-top:7px; display:flex; flex-direction:column; gap:5px;
+    font-size:12.5px; color:var(--wy-sub); line-height:1.7; }
+  .pc-foot { font-size:11.5px; color:var(--wy-muted); }
+
+  /* 补充信息：消息内提示条 + 弹窗 */
+  .btn-primary { background:var(--wy-accent); color:#fff; border:none; border-radius:var(--wy-r-ctl);
+    padding:8px 18px; font-size:13.5px; cursor:pointer; font-weight:600; }
+  .btn-primary:hover { background:var(--wy-accent-strong); }
+  .btn-primary:disabled { background:#a9cfbe; cursor:not-allowed; }
+  .btn-primary.sm { padding:5px 14px; font-size:12.5px; }
+  .btn-ghost { background:#fff; color:var(--wy-sub); border:1px solid var(--wy-line); border-radius:var(--wy-r-ctl);
+    padding:7px 16px; font-size:13px; cursor:pointer; }
+  .btn-ghost:hover { border-color:var(--wy-accent); color:var(--wy-accent); }
+  .q-bar { margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--wy-warn-bg); border:1px solid var(--wy-warn-line); border-radius:var(--wy-r-ctl);
+    padding:9px 14px; font-size:13px; color:var(--wy-warn); }
+  .qmask { position:fixed; inset:0; background:rgba(16,42,29,.42); z-index:60; display:flex;
+    align-items:center; justify-content:center; padding:18px; }
+  .qpanel { width:620px; max-width:100%; max-height:86vh; display:flex; flex-direction:column;
+    background:var(--wy-panel); border-radius:var(--wy-r-card); box-shadow:var(--wy-shadow); overflow:hidden; }
+  .qp-head { padding:15px 20px 13px; border-bottom:1px solid var(--wy-line); display:flex;
+    justify-content:space-between; align-items:flex-start; gap:10px; }
+  .qp-head b { font-size:16px; color:var(--wy-text); }
+  .qp-head .x { border:none; background:var(--wy-sidebar); width:28px; height:28px; border-radius:var(--wy-r-ctl);
+    cursor:pointer; color:var(--wy-sub); font-size:13px; flex-shrink:0; }
+  .qp-head .x:hover { background:var(--wy-soft); color:var(--wy-accent); }
+  .qp-sub { font-size:12.5px; color:var(--wy-muted); margin-top:5px; line-height:1.65; }
+  .qp-body { padding:14px 20px; overflow-y:auto; flex:1; }
+  .qitem { padding:11px 14px; border:1px solid var(--wy-line); border-radius:var(--wy-r-ctl); margin-bottom:10px;
+    background:var(--wy-panel-soft); }
+  .qitem .q-label { font-weight:600; color:var(--wy-text); font-size:13.5px; }
+  .qitem .q-label .qno { color:var(--wy-accent); margin-right:4px; }
+  .qitem .q-reason { font-size:12px; color:var(--wy-muted); margin-top:3px; }
+  .qitem .qbtn { margin-top:6px; }
+  .qbtn { display:inline-block; margin:0 6px 0 0; padding:4px 13px; border:1px solid var(--wy-line);
+    border-radius:var(--wy-r-ctl); background:#fff; color:var(--wy-text); font-size:12.5px; cursor:pointer; }
+  .qbtn:hover { border-color:var(--wy-accent); color:var(--wy-accent); }
+  .qbtn.on { background:var(--wy-accent); color:#fff; border-color:var(--wy-accent); }
+  .qnum { width:220px; padding:5px 10px; border:1px solid var(--wy-line); border-radius:var(--wy-r-ctl);
+    font-size:13px; outline:none; background:#fff; color:var(--wy-text); }
+  .qnum:focus { border-color:var(--wy-accent); box-shadow:0 0 0 3px rgba(22,139,99,.14); }
+  .qp-foot { padding:12px 20px; border-top:1px solid var(--wy-line); display:flex;
+    justify-content:space-between; align-items:center; gap:10px; background:var(--wy-panel-soft); }
+  .qp-foot-r { display:flex; gap:10px; }
+
+  /* 输入条：与 860px 居中对话列对齐 */
+  .inputbar { padding:12px 24px 14px; border-top:1px solid var(--wy-line);
+    background:var(--wy-panel); flex-shrink:0; }
+  .inputbar-inner { max-width:var(--wy-chat-w); margin:0 auto; }
+  .inputbar textarea { width:100%; min-height:56px; max-height:140px; resize:vertical; padding:11px 13px;
+    border:1px solid var(--wy-line); border-radius:var(--wy-r-ctl); font-size:14px; font-family:inherit; outline:none;
+    background:#fff; color:var(--wy-text); }
+  .inputbar textarea:focus { border-color:var(--wy-accent); box-shadow:0 0 0 3px rgba(22,139,99,.14); }
+  .inputbar .row { display:flex; justify-content:space-between; align-items:center; margin-top:9px; gap:10px; }
+  .inputbar .row .l { font-size:12px; color:var(--wy-muted); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .inputbar .send { padding:8px 26px; border:none; border-radius:var(--wy-r-ctl); cursor:pointer;
+    background:var(--wy-accent); color:#fff; font-size:14px; font-weight:600; letter-spacing:4px; }
+  .inputbar .send:hover { background:var(--wy-accent-strong); }
+  .inputbar .send:disabled { background:#a9cfbe; cursor:not-allowed; }
+
+  /* ---------- 发展意愿问卷面板 ---------- */
+  .survey-mask { position:fixed; inset:0; background:rgba(16,42,29,.42); z-index:50;
+    display:flex; align-items:center; justify-content:center; padding:18px; }
+  .survey-panel { width:660px; max-width:100%; max-height:88vh; overflow-y:auto; background:var(--wy-panel);
+    border-radius:var(--wy-r-card); padding:20px 24px; box-shadow:var(--wy-shadow); }
+  .survey-panel .sp-head { display:flex; justify-content:space-between; align-items:center;
+    border-bottom:1px solid var(--wy-line); padding-bottom:12px; margin-bottom:14px; }
+  .survey-panel .sp-head b { font-size:16px; color:var(--wy-text); }
+  .survey-panel .sp-head .x { border:none; background:var(--wy-sidebar); width:28px; height:28px;
+    border-radius:var(--wy-r-ctl); cursor:pointer; color:var(--wy-sub); font-size:13px; }
+  .survey-panel .sp-head .x:hover { background:var(--wy-soft); color:var(--wy-accent); }
+  .sp-meta { display:flex; gap:10px; margin-bottom:14px; }
+  .sp-meta input { flex:1; padding:8px 10px; border:1px solid var(--wy-line); border-radius:var(--wy-r-ctl);
+    font-size:13px; outline:none; background:#fff; color:var(--wy-text); }
+  .sp-meta input:focus { border-color:var(--wy-accent); box-shadow:0 0 0 3px rgba(22,139,99,.14); }
+  .sq { margin-bottom:14px; padding:12px 14px; border:1px solid var(--wy-line); border-radius:var(--wy-r-ctl);
+    background:var(--wy-panel-soft); }
+  .sq .q { font-size:13.5px; font-weight:600; color:var(--wy-text); margin-bottom:8px; line-height:1.6; }
+  .sq .q .sc { color:var(--wy-warn); font-weight:700; font-size:12px; margin-left:6px; }
+  .sq input[type=text] { width:200px; padding:6px 9px; border:1px solid var(--wy-line); border-radius:6px;
+    font-size:12.5px; outline:none; margin-top:6px; background:#fff; color:var(--wy-text); }
+  .sq input[type=text]:focus { border-color:var(--wy-accent); }
+  .sp-foot { display:flex; justify-content:space-between; align-items:center; margin-top:16px;
+    padding-top:14px; border-top:1px solid var(--wy-line); }
+  .sp-score { font-size:14px; color:var(--wy-text); }
+  .sp-score b { color:var(--wy-accent); }
+  .sp-score .lv { display:inline-block; margin-left:8px; padding:1px 10px; border-radius:6px;
+    font-size:12px; font-weight:600; background:var(--wy-soft); color:var(--wy-accent-strong); }
+  .sp-score .lv.low { background:var(--wy-err-bg); color:var(--wy-err); }
+  .sp-send { padding:9px 20px; border:none; border-radius:var(--wy-r-ctl); cursor:pointer;
+    background:var(--wy-accent); color:#fff; font-size:13.5px; font-weight:600; }
+  .sp-send:hover { background:var(--wy-accent-strong); }
+  .sp-send:disabled { background:#a9cfbe; cursor:not-allowed; }
+  .sp-tip { font-size:11.5px; color:var(--wy-muted); margin-top:6px; line-height:1.5; }
+
+  /* ---------- 政策预览抽屉（右侧滑出；顶/底由 JS 测量，避开顶栏与输入区） ---------- */
+  .pv-root { position:fixed; inset:0; z-index:70; pointer-events:none; }
+  .pv-mask { position:absolute; left:0; right:0; top:var(--pv-top,58px); bottom:var(--pv-bottom,0px);
+    background:rgba(16,42,29,.34); pointer-events:auto; animation:pvFade .16s ease-out; }
+  .pv { position:absolute; right:0; top:var(--pv-top,58px); bottom:var(--pv-bottom,0px);
+    width:var(--pv-w,clamp(420px,42vw,520px)); max-width:calc(100vw - 48px); display:flex; flex-direction:column;
+    background:var(--wy-panel); border-left:1px solid var(--wy-line); border-radius:var(--wy-r-card) 0 0 var(--wy-r-card);
+    box-shadow:var(--wy-shadow); pointer-events:auto; animation:pvSlide .18s ease-out; outline:none; }
+  .pv-grip { position:absolute; left:-5px; top:0; bottom:0; width:11px; cursor:col-resize;
+    display:flex; align-items:center; justify-content:center; z-index:2; touch-action:none; }
+  .pv-grip::after { content:""; width:2px; height:48px; border-radius:2px; background:var(--wy-line);
+    transition:background .15s ease; }
+  .pv-grip:hover::after { background:var(--wy-accent); }
+  .pv-head { display:flex; align-items:flex-start; gap:11px; padding:15px 16px 13px;
+    border-bottom:1px solid var(--wy-line); flex-shrink:0; }
+  .pv-head-icon { width:32px; height:32px; flex-shrink:0; border-radius:9px; background:var(--wy-soft);
+    color:var(--wy-accent); display:flex; align-items:center; justify-content:center;
+    font-size:15px; font-weight:700; }
+  .pv-head-text { flex:1; min-width:0; }
+  .pv-title { font-size:15px; font-weight:600; color:var(--wy-text); line-height:1.45; word-break:break-word; }
+  .pv-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .pv-chip { font-size:11.5px; padding:1px 8px; border-radius:6px; background:var(--wy-sidebar);
+    color:var(--wy-sub); white-space:nowrap; }
+  .pv-region { margin-top:5px; font-size:11.5px; color:var(--wy-muted); }
+  .pv-region-hint { color:var(--wy-sub); }
+  .pv-close { width:28px; height:28px; flex-shrink:0; border:none; background:var(--wy-sidebar);
+    border-radius:var(--wy-r-ctl); cursor:pointer; color:var(--wy-sub); font-size:12px; }
+  .pv-close:hover { background:var(--wy-soft); color:var(--wy-accent); }
+  .pv-body { flex:1; overflow-y:auto; padding:2px 18px 16px; }
+  .pv-sec { padding:14px 0 12px; border-bottom:1px solid var(--wy-line); }
+  .pv-sec:last-child { border-bottom:none; padding-bottom:4px; }
+  .pv-sec-title { font-size:13px; font-weight:600; color:var(--wy-text); margin:0 0 8px;
+    display:flex; align-items:center; gap:7px; }
+  .pv-sec-title::before { content:""; width:3px; height:14px; background:var(--wy-accent); border-radius:2px; }
+  .pv-rows { display:flex; flex-direction:column; gap:5px; }
+  .pv-row { display:flex; gap:10px; font-size:13px; line-height:1.65; }
+  .pv-row-k { flex-shrink:0; width:76px; color:var(--wy-muted); }
+  .pv-row-v { color:var(--wy-text); word-break:break-word; }
+  .pv-text { margin:0; font-size:13.5px; line-height:1.85; color:var(--wy-text); white-space:pre-wrap;
+    word-break:break-word; }
+  .pv-kv { display:flex; gap:10px; font-size:13px; line-height:1.7; margin-top:4px; }
+  .pv-kv span { flex-shrink:0; width:76px; color:var(--wy-muted); }
+  .pv-kv b { color:var(--wy-accent-strong); font-weight:600; }
+  .pv-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .pv-tag { font-size:12px; padding:2px 9px; border-radius:6px; max-width:100%; line-height:1.6; }
+  .pv-tag.ok { background:var(--wy-ok-bg); color:var(--wy-ok); border:1px solid var(--wy-ok-line); }
+  .pv-tag.miss { background:var(--wy-warn-bg); color:var(--wy-warn); border:1px solid var(--wy-warn-line); }
+  .pv-gaps { margin-top:10px; }
+  .pv-gaps .pv-row-k { width:auto; font-weight:600; margin-bottom:4px; }
+  .pv-gap { font-size:12.5px; color:var(--wy-sub); line-height:1.7; }
+  .pv-note { margin:0 0 8px; font-size:12px; color:var(--wy-muted); line-height:1.65; }
+  .pv-note-hint { color:var(--wy-sub); background:var(--wy-panel-soft); border:1px solid var(--wy-line);
+    border-radius:var(--wy-r-ctl); padding:6px 9px; }
+  .pv-excerpt { margin:0; font-size:12.5px; line-height:1.85; color:var(--wy-sub); white-space:pre-wrap;
+    word-break:break-word; background:var(--wy-panel-soft); border:1px solid var(--wy-line);
+    border-radius:var(--wy-r-ctl); padding:10px 12px; }
+  .pv-empty { font-size:12.5px; color:var(--wy-muted); padding:4px 0; }
+  .pv-detailpick { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px; }
+  .pv-detailpick-l { font-size:12px; color:var(--wy-muted); margin-right:2px; }
+  .pv-chip-btn { border:1px solid var(--wy-line); background:#fff; cursor:pointer; padding:2px 9px;
+    border-radius:6px; font-size:12px; color:var(--wy-sub); }
+  .pv-chip-btn:hover { border-color:var(--wy-accent); color:var(--wy-accent); }
+  .pv-chip-btn.on { background:var(--wy-soft); border-color:#bcdccd; color:var(--wy-accent-strong); }
+  .pv-state { display:flex; align-items:center; gap:8px; padding:28px 4px; font-size:13px; color:var(--wy-sub); }
+  .pv-state-err { flex-direction:column; align-items:flex-start; color:var(--wy-err); line-height:1.7; }
+  .pv-state-actions { display:flex; gap:8px; margin-top:10px; }
+  .pv-foot { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 18px; border-top:1px solid var(--wy-line); background:var(--wy-panel-soft);
+    border-radius:0 0 0 var(--wy-r-card); }
+  .pv-btn { padding:7px 16px; border:none; border-radius:var(--wy-r-ctl); background:var(--wy-accent);
+    color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+  .pv-btn:hover { background:var(--wy-accent-strong); }
+  .pv-btn-ghost { background:#fff; color:var(--wy-sub); border:1px solid var(--wy-line); }
+  .pv-btn-ghost:hover { background:var(--wy-soft); border-color:#cfe6da; color:var(--wy-accent); }
+  @keyframes pvFade { from { opacity:0; } to { opacity:1; } }
+  @keyframes pvSlide { from { transform:translateX(26px); opacity:.55; } to { transform:none; opacity:1; } }
+
+  /* 窄屏：抽屉改全屏浮层，避免盖住输入区 */
+  @media (max-width:960px) {
+    .chat { padding:16px 14px !important; }
+    .inputbar { padding:10px 14px 12px; }
+    .pv { top:0; bottom:0; width:100%; max-width:100%; border-left:none;
+      border-radius:0; box-shadow:none; }
+    .pv-mask { top:0; bottom:0; }
+    .pv-grip { display:none; }
+    .pv-foot { border-radius:0; }
+  }
+  @media (max-width:760px) {
+    .body { flex-direction:column; }
+    aside { width:100% !important; max-width:100%; max-height:180px; }
+    header { padding:0 14px; }
+    header .brand span { display:none; }
+    .msg { max-width:92%; }
+    .pc-head { gap:6px; }
+    .pc-preview-hint { margin-left:0; }
+    .qpanel, .survey-panel { width:100%; }
+  }
+</style>
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/auth.js?v=20261007-repair1"></script>
+</head>
+<body>
+<div id="app" v-cloak>
+
+  <!-- ======== 登录卡 ======== -->
+  <div v-if="authLoading || authError" class="login-wrap">
+    <div class="login-card">
+      <h1>智能帮扶政策匹配系统</h1>
+      <p v-if="authLoading" role="status">正在确认登录状态…</p>
+      <template v-else><p class="err">{{ authError }}</p><button class="btn" @click="restoreLogin">重新连接</button></template>
+    </div>
+  </div>
+  <div v-else-if="!user" class="login-wrap">
+    <div class="login-card">
+      <div class="logo">扶</div>
+      <h1>智能帮扶政策匹配系统</h1>
+      <div class="sub">防止返贫监测帮扶 · 政策咨询与匹配<br>回答内容来自最新政策文件，请以官方发布为准</div>
+      <div v-if="err" class="err">{{ err }}</div>
+      <input v-model="username" placeholder="请输入用户名" @keyup.enter="doLogin">
+      <input v-model="password" type="password" placeholder="请输入密码" @keyup.enter="doLogin">
+      <button class="btn" @click="doLogin" :disabled="logging">登 录</button>
+      <div class="tip">账号由管理员开通，如有问题请联系管理员</div>
+    </div>
+  </div>
+
+  <!-- ======== 问答主界面 ======== -->
+  <div v-else class="layout">
+    <header>
+      <div class="brand">
+        <div class="logo">扶</div>
+        <b>智能帮扶政策匹配系统</b>
+        <span>防止返贫监测帮扶 · 政策智能匹配</span>
+      </div>
+      <div class="uinfo">
+        <div class="mswitch" ref="msroot">
+          <button class="hbtn" @click="msOpen=!msOpen">模型：{{ modelLabel }} ▾</button>
+          <div v-if="msOpen" class="msmenu">
+            <div v-for="m in modelPlatforms" :key="m.name" class="msitem" :class="{cur: m.name===currentModel}"
+                 @click="switchModel(m.name)">
+              <span>{{ m.platform }}<i v-if="m.kind" class="mkind" :class="{cloud:m.kind==='云端'}">{{ m.kind }}</i></span>
+              <span class="muted">{{ m.model }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="mswitch" ref="uroot">
+          <button class="hbtn" @click="uOpen=!uOpen">{{ user.real_name }} ▾</button>
+          <div v-if="uOpen" class="msmenu umenu">
+            <div class="um-name">{{ user.real_name }}（{{ user.username }}）</div>
+            <div v-if="user.role==='admin'" class="msitem" @click="uOpen=false; goAdmin()">进入管理后台</div>
+            <div class="msitem" @click="uOpen=false; changePassword()">修改密码</div>
+            <div class="msitem danger" @click="uOpen=false; logout()">退出登录</div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <div class="body">
+      <aside :style="{width: asideWidth + 'px'}">
+        <button class="newbtn" @click="newSession">新建会话</button>
+        <div class="list">
+          <div v-for="s in sessions" :key="s.session_id" class="item" :class="{cur:s.session_id===currentSid}"
+               @click="switchSession(s.session_id)">
+            <div class="t">{{ s.title || '（无标题会话）' }}</div>
+            <div class="m">{{ s.count }} 条 · {{ s.last_at }}</div>
+          </div>
+          <div v-if="!sessions.length" class="empty">暂无历史会话</div>
+        </div>
+        <div class="spager" v-if="sessTotal>0">
+          <button :disabled="sessPage<=1" @click="loadSessions(sessPage-1)">‹ 上一页</button>
+          <span>第 {{ sessPage }} / {{ sessPages }} 页 · 共 {{ sessTotal }} 个会话</span>
+          <button :disabled="sessPage>=sessPages" @click="loadSessions(sessPage+1)">下一页 ›</button>
+        </div>
+        <div class="resizer" @mousedown.prevent="startDrag"></div>
+      </aside>
+      <main>
+        <div class="chat" ref="chatBox" :style="chatPadRight ? {'padding-right': chatPadRight + 'px'} : null">
+          <div class="chat-col">
+            <button v-if="historyMore" class="dlbtn" @click="loadHistory(currentSid,true)">加载更早的记录</button>
+          <div v-if="!messages.length" class="hint">
+            您好，我是帮扶政策助手。<br><br>
+            直接<b>描述家庭情况</b>（成员、健康、就业、收入、风险类型等），我会自动匹配适用政策，<br>
+            告诉您每项政策<b>能享受什么、还缺什么、怎么办理</b>。<br><br>
+            也可以直接问政策，例如：<b>“脱贫人口小额信贷贴息怎么申请？”</b>
+          </div>
+          <div v-for="(m,i) in messages" :key="i" class="msg"
+               :class="m.role==='user' ? 'user' : ('bot' + ((m.tableRows&&m.tableRows.length)||(m.cards&&m.cards.length) ? ' wide' : ''))">
+            <template v-if="m.role==='user'">{{ m.content }}</template>
+            <template v-else>
+              <div v-if="m.streaming || hasEvents(m) || (m.progress && m.progress.length) || m.qa_id" class="think"
+                   :class="{finished: !m.streaming}">
+                <div class="think-head" @click="toggleThink(m)">
+                  <template v-if="m.streaming">
+                    <span class="spinner"></span>
+                    <span class="think-latest">{{ latestProgress(m) }}</span>
+                    <span class="think-caret">{{ m.progressOpen ? '收起 ▲' : '展开全部 ▼' }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="think-ico" :class="m.status === 'interrupted' ? '' : 'ok'">{{ m.status === 'interrupted' ? '✗' : '✓' }}</span>
+                    <span class="think-latest">{{ thinkSummary(m) }}</span>
+                    <span class="think-caret">{{ m.progressOpen ? '收起 ▲' : '查看分析过程 ▼' }}</span>
+                  </template>
+                </div>
+                <div v-if="m.progressOpen" class="think-body">
+                  <div v-if="m.replayLoading" class="tl-note">正在读取完整分析链路…</div>
+                  <div v-else-if="isReplay(m)" class="tl-note">完整链路 · {{ replayStepCount(m) }} 步<span v-if="replayInternalCount(m)"> · 内部过程 {{ replayInternalCount(m) }} 步</span></div>
+                  <template v-if="timelineItems(m).rows.length || timelineItems(m).internal.length">
+                    <ul v-if="timelineItems(m).rows.length" class="tl-list">
+                      <li v-for="ev in timelineItems(m).rows" :key="evKey(ev)" :class="evRowClass(ev)">
+                        <span v-if="ev.status === 'running'" class="spinner tl-spin"></span>
+                        <span v-else class="think-ico" :class="evIconClass(ev)">{{ evIcon(ev) }}</span>
+                        <span class="tl-title">{{ evText(ev) }}</span>
+                        <span v-if="detailChips(ev).length" class="tl-chips">
+                          <span v-for="(c,ci) in detailChips(ev)" :key="ci" class="tl-chip">{{ c.label }} {{ c.value }}</span>
+                        </span>
+                        <span v-if="evMs(ev)" class="think-ms">{{ evMs(ev) }}</span>
+                      </li>
+                    </ul>
+                    <details v-if="timelineItems(m).internal.length" class="tl-internal">
+                      <summary>内部过程 {{ timelineItems(m).internal.length }} 步</summary>
+                      <ul class="tl-list">
+                        <li v-for="ev in timelineItems(m).internal" :key="'i' + evKey(ev)" :class="evRowClass(ev)">
+                          <span v-if="ev.status === 'running'" class="spinner tl-spin"></span>
+                          <span v-else class="think-ico" :class="evIconClass(ev)">{{ evIcon(ev) }}</span>
+                          <span class="tl-title">{{ evText(ev) }}</span>
+                          <span v-if="detailChips(ev).length" class="tl-chips">
+                            <span v-for="(c,ci) in detailChips(ev)" :key="ci" class="tl-chip">{{ c.label }} {{ c.value }}</span>
+                          </span>
+                          <span v-if="evMs(ev)" class="think-ms">{{ evMs(ev) }}</span>
+                        </li>
+                      </ul>
+                    </details>
+                  </template>
+                  <ul v-else-if="m.progress && m.progress.length" class="think-list">
+                    <li v-for="(p,pi) in m.progress" :key="pi"
+                        :class="p.error ? 'err' : (p.done ? 'done' : 'running')">
+                      <span class="think-ico">{{ p.error ? '✗' : (p.done ? '✓' : '▶') }}</span>
+                      <span>{{ p.label }}</span>
+                      <span v-if="p.ms" class="think-ms">{{ (p.ms/1000).toFixed(1) }}s</span>
+                    </li>
+                  </ul>
+                </div>
+                <div v-if="!m.streaming && m.qa_id" class="tl-foot">
+                  <button class="dlbtn tl-btn" :disabled="m.replayLoading" @click="loadTrace(m)">{{ m.replayLoading ? '读取链路…' : '分析链路' }}</button>
+                  <span v-if="m.replayError" class="tl-note-err">{{ m.replayError }}</span>
+                  <span v-else-if="isReplay(m)" class="tl-note">已载入完整链路</span>
+                  <span v-if="m.traceId && !m.replayError" class="tl-trace" :title="'trace_id：' + m.traceId">trace {{ traceShort(m.traceId) }}</span>
+                </div>
+              </div>
+              <template v-if="!m.streaming">
+                <template v-if="m.cards && m.cards.length">
+                  <div class="sec-title">匹配到的政策<span class="sub">共 {{ m.cards.length }} 项 · 点开卡片可看依据与办理方式</span></div>
+                  <div class="cards">
+                    <div v-for="(c,j) in m.cards" :key="j" class="pc" role="button" tabindex="0"
+                         :aria-label="'预览政策详情：' + (c.name || c.code)" title="点击查看政策详情"
+                         @click="onCardClick(c, $event)"
+                         @keydown.enter.prevent="onCardKey(c, $event)"
+                         @keydown.space.prevent="onCardKey(c, $event)">
+                      <div class="pc-head">
+                        <span class="pc-name">{{ c.name || c.code }}</span>
+                        <span class="pc-chip">{{ c.code }}</span>
+                        <span class="pc-chip member">{{ c.member }}</span>
+                        <span v-if="c.decision && c.decision.indexOf('您点名')>=0" class="pc-chip named">您点名核验</span>
+                        <span v-if="c.enjoyed" class="pc-chip enjoyed">该户已享受，无需重复申请</span>
+                        <span class="pc-preview-hint">点击预览 ›</span>
+                      </div>
+                      <div class="pc-body">
+                        <div v-if="c.intro" class="pc-intro">{{ c.intro }}</div>
+                        <div class="pc-benefit"><b>能享受什么：</b>{{ benefitText(c) }}</div>
+                        <div class="pc-tags">
+                          <span v-for="(s,si) in (c.satisfied||[])" :key="'ok'+si" class="pc-tag ok">已满足：{{ okText(s) }}</span>
+                          <span v-for="(mi,mi2) in (c.missing||[])" :key="'miss'+mi2" class="pc-tag miss">待补充：{{ mi }}</span>
+                        </div>
+                        <details class="pc-detail">
+                          <summary>政策依据 / 申领流程 / 其他说明</summary>
+                          <div class="pc-dbody">
+                            <div v-if="c.reason"><b>匹配理由：</b>{{ c.reason }}</div>
+                            <div><b>政策依据：</b>{{ c.basis || '—' }}</div>
+                            <div><b>申领流程：</b>{{ processText(c) }}</div>
+                            <div v-if="c.contact"><b>联系单位/电话：</b>{{ c.contact }}</div>
+                            <div v-if="c.condition_progress"><b>条件进度：</b>{{ c.condition_progress }}</div>
+                            <div v-if="c.source_gaps && c.source_gaps.length"><b>原文未明确的口径：</b>{{ c.source_gaps.join('；') }}</div>
+                            <div v-if="c.verify && c.verify.length"><b>下一步核实：</b>{{ c.verify.join('；') }}</div>
+                            <div><b>核验结论：</b>{{ c.decision || '待确认' }}</div>
+                          </div>
+                        </details>
+                        <div class="pc-foot">以上为部分条件核对结果，未确认完整资格；补贴标准以主管部门现行口径为准。</div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <div v-if="m.analysisMd" class="md-block" v-html="md2html(m.analysisMd)"></div>
+                <div v-if="m.content" class="ans-md" v-html="md2html(m.content)"></div>
+
+                <div v-if="m.willMissing" style="margin-top:10px">
+                  <button class="dlbtn" @click="openSurvey">该户尚未填写发展意愿问卷，点击填写</button>
+                </div>
+
+                <div v-if="m.questions && m.questions.length && i===lastBotIdx && qModal!==m" class="q-bar">
+                  <span>还有 {{ m.questions.length }} 项家庭信息待补充，补充后匹配更准确</span>
+                  <button class="btn-primary sm" @click="openQModal(m)">去补充</button>
+                </div>
+
+                <details v-if="m.status === 'complete' && m.tableRows && m.tableRows.length" class="ref" style="margin-top:10px"><summary>查看完整匹配明细表（{{ m.tableRows.length }} 条，供导出/打印）</summary><div class="table-wrap">
+                  <table class="match-table">
+                    <thead><tr><th v-for="h in tableHeaders" :key="h">{{ h }}</th></tr></thead>
+                    <tbody>
+                      <tr v-for="(row,j) in m.tableRows" :key="j">
+                        <td v-for="h in tableHeaders" :key="h">{{ row[h] }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div></details>
+
+                <details v-if="m.status === 'complete' && m.sources && m.sources.length" class="ref">
+                  <summary>引用依据 · 政策库记录（{{ m.sources.length }}）</summary>
+                  <div v-for="(src,j) in m.sources" :key="j" class="refitem">
+                    <div class="src">{{ src.policy_code || '—' }} {{ src.policy_name || '' }}</div>
+                    <div v-if="src.excerpt" class="ex">…{{ src.excerpt }}…</div>
+                  </div>
+                </details>
+                <div v-else-if="m.status === 'complete' && m.matched && m.matched.length" class="matched">
+                  引用政策：{{ m.matched.join('、') }}
+                </div>
+                <div v-if="m.exportQ && m.status === 'complete' && ((m.matched && m.matched.length) || (m.cards && m.cards.length))" style="margin-top:9px">
+                  <button class="dlbtn" @click="downloadMatch(m)" :disabled="exporting">
+                    {{ exporting ? '表格生成中…' : '下载匹配结果表（Excel）' }}
+                  </button>
+                </div>
+              </template>
+            </template>
+          </div>
+          <div v-if="err" class="err">{{ err }}</div>
+          </div>
+        </div>
+        <div class="inputbar">
+          <div class="inputbar-inner">
+            <textarea v-model="input" rows="2" placeholder="请描述家庭情况，或输入政策问题（Enter 发送）"
+                      @keydown.enter.exact.prevent="send()"></textarea>
+            <div class="row">
+              <div class="l">
+                <button class="dlbtn" style="padding:4px 12px;margin:0" @click="openSurvey">填写发展意愿问卷</button>
+                <span>回答基于知识库最新政策，具体以主管部门解释为准</span>
+              </div>
+              <button class="send" @click="onSendClick()" :disabled="!asking && !input.trim()">{{ asking ? '取 消' : '发 送' }}</button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ======== 补充家庭信息弹窗 ======== -->
+      <div v-if="qModal" class="qmask" @click.self="closeQModal">
+        <div class="qpanel" role="dialog" aria-modal="true" aria-label="补充家庭信息">
+          <div class="qp-head">
+            <div>
+              <b>补充家庭信息</b>
+              <div class="qp-sub">以下信息补全后，匹配结果会更准确；不确定的项目选“不清楚”即可，不会影响已出的结果。</div>
+            </div>
+            <button class="x" @click="closeQModal" aria-label="关闭">✕</button>
+          </div>
+          <div class="qp-body">
+            <div v-for="(q,j) in qModal.questions" :key="q.key" class="qitem">
+              <div class="q-label"><span class="qno">{{ j+1 }}.</span>{{ q.label }}</div>
+              <div class="q-reason" v-if="q.reason">{{ q.reason }}</div>
+              <template v-if="q.kind==='select'">
+                <button v-for="opt in q.options" :key="opt" class="qbtn"
+                        :class="{on: qModal.pendingAnswers[q.key]===opt}"
+                        @click="qModal.pendingAnswers[q.key]=opt">{{ opt }}</button>
+              </template>
+              <template v-else>
+                <input v-model="qModal.pendingAnswers[q.key]" type="text" class="qnum"
+                       style="margin-top:6px" placeholder="请输入补充信息">
+                <button class="qbtn" @click="qModal.pendingAnswers[q.key]='不清楚'">不清楚</button>
+                <button class="qbtn" @click="qModal.pendingAnswers[q.key]='暂时无法提供'">暂时无法提供</button>
+              </template>
+            </div>
+          </div>
+          <div class="qp-foot">
+            <button class="btn-ghost" @click="closeQModal">暂不补充</button>
+            <div class="qp-foot-r">
+              <button class="btn-ghost" @click="refineMatch(qModal,true)">跳过并按“不清楚”核验</button>
+              <button class="btn-primary" @click="refineMatch(qModal)" :disabled="asking">提交补充，重新匹配</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== 发展意愿问卷面板 ======== -->
+      <div v-if="showSurvey" class="survey-mask" @click.self="showSurvey=false">
+        <div class="survey-panel">
+          <div class="sp-head">
+            <b>农户发展意愿调研问卷</b>
+            <button class="x" @click="showSurvey=false">✕</button>
+          </div>
+          <div class="sp-meta">
+            <input v-model.number="survey.member_no" @change="updateSurveyMember" type="number" placeholder="成员序号（默认1）">
+            <input v-model="survey.member_name" placeholder="成员姓名（可选，如：张三）">
+          </div>
+
+          <div class="sq">
+            <div class="q">1. 为了增加您家的收入，您更希望是在家务农、创业还是外出打工？（基础意愿分，满分4分）</div>
+            <button v-for="o in ['在家务农','外出打工','创业','都不想']" :key="o" class="qbtn"
+                    :class="{on: survey.q1===o}" @click="pick('q1', o, ['q2','q3','q4','q5','q6','q7','q8','q7_skill'])">{{ o }}</button>
+          </div>
+
+          <div v-if="survey.q1==='在家务农'" class="sq">
+            <div class="q">2. 如果想在家务农，是想搞点种植，还是养殖？</div>
+            <button v-for="o in ['种植','养殖']" :key="o" class="qbtn"
+                    :class="{on: survey.q2===o}" @click="pick('q2', o, ['q3','q4'])">{{ o }}</button>
+            <div v-if="survey.q2==='种植'" style="margin-top:8px">
+              <div class="q">3. 县里有种植补助（油茶、水稻等），想具体种点什么？（产业细化分3分）</div>
+              <button v-for="o in ['油茶','水稻']" :key="o" class="qbtn"
+                      :class="{on: survey.q3===o}" @click="survey.q3=o">{{ o }}</button>
+              <button class="qbtn" :class="{on: survey.q3==='其他'}" @click="survey.q3='其他'">其他</button>
+              <div v-if="survey.q3==='其他'"><input v-model="survey.q3_other" type="text" placeholder="填写具体作物名称"></div>
+            </div>
+            <div v-if="survey.q2==='养殖'" style="margin-top:8px">
+              <div class="q">4. 县里有养殖补助（生猪、肉牛等），想具体养点什么？（产业细化分3分）</div>
+              <button v-for="o in ['生猪','肉牛']" :key="o" class="qbtn"
+                      :class="{on: survey.q4===o}" @click="survey.q4=o">{{ o }}</button>
+              <button class="qbtn" :class="{on: survey.q4==='其他'}" @click="survey.q4='其他'">其他</button>
+              <div v-if="survey.q4==='其他'"><input v-model="survey.q4_other" type="text" placeholder="填写具体养殖品种"></div>
+            </div>
+          </div>
+
+          <div v-if="survey.q1==='在家务农' || survey.q1==='创业'" class="sq">
+            <div class="q">5. 种植/养殖/创业有没有启动资金？如果缺，现在有免息小额贷款（5万以下），愿意申请吗？（3分）</div>
+            <button v-for="o in ['需要','不需要']" :key="o" class="qbtn"
+                    :class="{on: survey.q5===o}" @click="survey.q5=o">{{ o }}启动资金</button>
+          </div>
+
+          <div v-if="survey.q1==='外出打工'" class="sq">
+            <div class="q">6. 外出打工是倾向在哪里打工？（2分）</div>
+            <button v-for="o in ['村里/乡镇就近','本省内','外省','没想好']" :key="o" class="qbtn"
+                    :class="{on: survey.q6===o}" @click="survey.q6=o">{{ o }}</button>
+          </div>
+
+          <div v-if="survey.q1==='外出打工'" class="sq">
+            <div class="q">7. 想学点什么技能更好打工？（2分）</div>
+            <button class="qbtn" :class="{on: survey.q7==='不想学'}" @click="survey.q7='不想学'; survey.q7_skill=''">不想学</button>
+            <button class="qbtn" :class="{on: survey.q7==='想学'}" @click="survey.q7='想学'">想学</button>
+            <div v-if="survey.q7==='想学'" style="margin-top:8px">
+              <button v-for="o in ['烹饪','电焊']" :key="o" class="qbtn"
+                      :class="{on: survey.q7_skill===o}" @click="survey.q7_skill=o">{{ o }}</button>
+              <button class="qbtn" :class="{on: survey.q7_skill==='其他'}" @click="survey.q7_skill='其他'">其他</button>
+              <div v-if="survey.q7_skill==='其他'"><input v-model="survey.q7_other" type="text" placeholder="填写想学的技能"></div>
+            </div>
+          </div>
+
+          <div v-if="survey.q1==='都不想' && q8Eligible" class="sq">
+            <div class="q">8. 村里有护林员、保洁员这类公益性岗位，您愿意干吗？（仅弱劳/半劳或60周岁以上人群，2分）</div>
+            <button v-for="o in ['愿意','不愿意']" :key="o" class="qbtn"
+                    :class="{on: survey.q8===o}" @click="survey.q8=o">{{ o }}</button>
+          </div>
+
+          <div class="sp-foot">
+            <div class="sp-score">
+              意愿评分：<b>{{ surveyScore }}</b> / 11
+              <span v-if="surveyLevel" class="lv" :class="{low: surveyLevel==='低'}">{{ surveyLevel }}意愿</span>
+            </div>
+            <div>
+              <button class="sp-send" @click="submitSurvey" :disabled="!surveyComplete || submitting">
+                {{ submitting ? '提交中…' : '生成话术并开始匹配' }}</button>
+            </div>
+          </div>
+          <div class="sp-tip">提交后系统将按问卷答案自动匹配帮扶政策（产业/就业/金融等按意愿加权推荐）；低意愿（≤4分）优先推荐兜底保障类政策。成员可多次填写，整户评分功能后续版本支持。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== 政策预览抽屉：点 .pc 卡片打开；顶/底由 JS 测量，不遮挡顶栏与输入区 ======== -->
+    <div v-if="previewOpen" class="pv-root"
+         :style="{'--pv-top': pvGeom.top + 'px', '--pv-bottom': pvGeom.bottom + 'px'}">
+      <div class="pv-mask" @click.self="closePreview"></div>
+      <div class="pv" :style="{'--pv-w': pvWidth + 'px'}" ref="pvPanel" tabindex="-1"
+           role="dialog" aria-modal="true" :aria-label="'政策预览：' + pvTitle">
+        <div class="pv-grip" @mousedown.prevent="startPvDrag" role="separator"
+             aria-orientation="vertical" title="拖动调整预览宽度"></div>
+        <div class="pv-head">
+          <div class="pv-head-icon">策</div>
+          <div class="pv-head-text">
+            <div class="pv-title">{{ pvTitle }}</div>
+            <div class="pv-chips" v-if="pvHeadChips.length">
+              <span v-for="chip in pvHeadChips" :key="chip" class="pv-chip">{{ chip }}</span>
+            </div>
+            <div v-if="pvDetailRegion" class="pv-region">适用地区：{{ pvDetailRegion }}</div>
+            <div v-if="pvDetailHint" class="pv-region pv-region-hint">{{ pvDetailHint }}</div>
+          </div>
+          <button class="pv-close" @click="closePreview" aria-label="关闭预览">✕</button>
+        </div>
+        <div class="pv-body">
+          <div v-if="previewLoading && !previewData" class="pv-state">
+            <span class="spinner"></span>正在加载政策预览…
+          </div>
+          <div v-else-if="previewErr" class="pv-state pv-state-err">
+            <div>{{ previewErr }}</div>
+            <div class="pv-state-actions">
+              <button class="pv-btn pv-btn-ghost" @click="openPreview(previewCard, null)">重试</button>
+              <button class="pv-btn pv-btn-ghost" @click="closePreview">关闭</button>
+            </div>
+          </div>
+          <template v-else-if="previewData">
+            <section v-for="sec in pvSections" :key="sec.title" class="pv-sec">
+              <h4 class="pv-sec-title">{{ sec.title }}</h4>
+              <div v-if="sec.rows" class="pv-rows">
+                <div v-for="row in sec.rows" :key="row[0]" class="pv-row">
+                  <span class="pv-row-k">{{ row[0] }}</span>
+                  <span class="pv-row-v">{{ row[1] }}</span>
+                </div>
+              </div>
+              <p v-if="sec.text" class="pv-text">{{ sec.text }}</p>
+              <div v-if="sec.title === '基本信息' && pvDetailOptions.length > 1" class="pv-detailpick">
+                <span class="pv-detailpick-l">地区口径</span>
+                <button v-for="d in pvDetailOptions" :key="d.detail_id" class="pv-chip-btn"
+                        :class="{on: pvDetailId === d.detail_id}"
+                        @click="switchPreviewDetail(d)">{{ d.region || ('明细 ' + d.detail_id) }}</button>
+              </div>
+            </section>
+            <section class="pv-sec">
+              <h4 class="pv-sec-title">本次核验依据</h4>
+              <div v-if="pvBasisEmpty" class="pv-empty">本次无核验明细</div>
+              <template v-else>
+                <div v-if="pvBasis.decision" class="pv-kv">
+                  <span>核验结论</span><b>{{ pvBasis.decision }}</b>
+                </div>
+                <div v-if="pvBasis.satisfied.length" class="pv-tags">
+                  <span v-for="(s,si) in pvBasis.satisfied" :key="'ps'+si" class="pv-tag ok">已满足：{{ okText(s) }}</span>
+                </div>
+                <div v-if="pvBasis.missing.length" class="pv-tags">
+                  <span v-for="(s,si) in pvBasis.missing" :key="'pm'+si" class="pv-tag miss">待补充：{{ s }}</span>
+                </div>
+                <div v-if="pvBasis.gaps.length" class="pv-gaps">
+                  <div class="pv-row-k">原文未明确的口径</div>
+                  <div v-for="(s,si) in pvBasis.gaps" :key="'pg'+si" class="pv-gap">· {{ s }}</div>
+                </div>
+              </template>
+            </section>
+            <section class="pv-sec">
+              <h4 class="pv-sec-title">{{ pvExcerptTitle }}</h4>
+              <p class="pv-note">以下为原文摘录，非全文；政策编号 {{ pvCode || '—' }}。{{ previewData.excerpt_truncated ? '（内容较长，仅展示前 3000 字）' : '' }}</p>
+              <p v-if="pvExcerptScope === 'policy'" class="pv-note pv-note-hint">该政策原文暂未按属地拆分，以下为政策级摘录</p>
+              <p v-if="previewData.excerpt" class="pv-excerpt">{{ previewData.excerpt }}</p>
+              <p v-else class="pv-empty">暂无可预览原文</p>
+            </section>
+          </template>
+        </div>
+        <div class="pv-foot">
+          <button class="pv-btn pv-btn-ghost" @click="copyPolicyCode">{{ copyMsg || '复制编号' }}</button>
+          <button class="pv-btn" @click="closePreview">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+const API = '/api';
+const TABLE_HEADERS = ['成员', '政策编号', '政策名称', '政策层级', '政策版本', '匹配理由',
+                       '政策依据（文件文号/条款）', '尚缺条件', '下一步核实事项', '补贴标准', '申领流程'];
+let sidSeq = 0;
+function newSid() {
+  return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('s-' + Date.now() + '-' + (sidSeq++));
+}
+function md2html(md) {
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = s => esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  const lines = (md || '').split('\n');
+  let html = '', top = null, li = false, child = false;
+  const closeLi = () => {
+    if (li) {
+      html += child ? '</li></ul></li>' : '</li>';
+      li = false; child = false;
+    }
+  };
+  const closeTop = () => { closeLi(); if (top) { html += '</' + top + '>'; top = null; } };
+  for (const raw of lines) {
+    const t = raw.trim();
+    if (!t) { closeTop(); continue; }
+    if (/^\*\*(.+)\*\*$/.test(t)) {
+      closeTop();
+      html += '<div class="md-h">' + inline(t) + '</div>';
+      continue;
+    }
+    const indent = raw.length - raw.trimStart().length;
+    const isChild = indent >= 2;
+    if (/^(?:\d+\.|[-*])\s+/.test(t)) {
+      const type = /^\d+\.\s+/.test(t) ? 'ol' : 'ul';
+      if (!isChild) {
+        if (top !== type) { closeTop(); top = type; html += '<' + type + '>'; }
+        else closeLi();
+        html += '<li>' + inline(t.replace(/^(?:\d+\.|[-*])\s+/, ''));
+        li = true; child = false;
+      } else {
+        if (!li) { html += '<li>' + inline(t.replace(/^(?:\d+\.|[-*])\s+/, '')); li = true; child = false; }
+        else if (!child) { html += '<ul><li>' + inline(t.replace(/^(?:\d+\.|[-*])\s+/, '')); child = true; }
+        else { html += '</li><li>' + inline(t.replace(/^(?:\d+\.|[-*])\s+/, '')); }
+      }
+    } else {
+      closeTop();
+      html += '<div>' + inline(t) + '</div>';
+    }
+  }
+  closeTop();
+  return html;
+}
+
+// ==================== SSE v2 帧解析 + 思考时间线纯函数 ====================
+// 说明：本区块不依赖 Vue/DOM，可整段抽出在 Node 下离线自测（SSE 新旧帧解析、envelope 合并、平铺时间线）。
+// 帧格式见 docs/redesign/m0-contracts.md §1：id:/event:/data: 行，data 为单行 JSON，": ping" 为心跳。
+// 旧服务只发 data: 行，两种都必须兼容；坏帧只跳过，绝不中断整条流。
+const LEGACY_EVENT_TYPES = ['session', 'progress', 'sources', 'analysis', 'table',
+                            'cards', 'questions', 'answer', 'done', 'error'];
+
+// 按 SSE 规范拆一个事件块：只认 id/event/data 字段，冒号开头为心跳注释，其它字段忽略。
+function parseSSEFrame(raw) {
+  const frame = { id: '', event: '', data: null };
+  const lines = String(raw == null ? '' : raw).split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].replace(/\r$/, '');       // 兼容 CRLF，不把 \r 带进字段值
+    if (!line || line.charAt(0) === ':') continue;   // 空行 / 心跳注释
+    const pos = line.indexOf(':');
+    const field = pos >= 0 ? line.slice(0, pos) : line;
+    let value = pos >= 0 ? line.slice(pos + 1) : '';
+    if (value.charAt(0) === ' ') value = value.slice(1);
+    if (field === 'data') frame.data = frame.data === null ? value : frame.data + '\n' + value;
+    else if (field === 'id') frame.id = value;
+    else if (field === 'event') frame.event = value;
+    // retry 等字段按 SSE 规范允许出现在帧里，前端不需要
+  }
+  return frame;
+}
+
+// 把事件块还原成 handleEvent 认识的 data 对象；心跳/坏 JSON/无 type 的未知帧返回 null。
+function decodeSSEFrame(raw) {
+  const frame = parseSSEFrame(raw);
+  if (frame.data === null || frame.data === '') return null;
+  let payload = null;
+  try { payload = JSON.parse(frame.data); } catch (e) { return null; }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  if (!payload.type && frame.event && LEGACY_EVENT_TYPES.indexOf(frame.event) >= 0) {
+    payload.type = frame.event;
+  }
+  if (!payload.type) return null;
+  return payload;
+}
+
+// detail 只展示对用户有意义的计数；键名取自后端 events.py 的安全白名单，不展示原文/隐私字段。
+const DETAIL_ZH = { unique_candidates: '候选', candidates: '候选', candidate_count: '候选',
+  eligible_candidates: '可核验', retrieved_chunks: '片段', sources: '来源', selected_sources: '来源',
+  source_count: '来源', evidence_count: '证据', policies: '政策', policy_count: '政策',
+  details: '明细', rows: '行', items: '条', members: '成员', total: '共', kept: '保留',
+  kept_count: '保留', dropped: '排除', dropped_count: '排除', region_dropped: '地区排除',
+  region_unconfirmed_kept: '地区待确认', intent_count: '意图', question_count: '追问',
+  rule_count: '规则', model_calls: '模型调用', call_count: '调用', batch: '批',
+  unknown_count: '未确认', hit: '命中', hit_rate: '命中率', top_k: 'TopK', threshold: '阈值',
+  candidate_budget_truncated: '预算截断' };
+
+function isEnvelope(ev) {
+  return !!(ev && typeof ev === 'object' && typeof ev.kind === 'string'
+            && typeof ev.title === 'string' && ev.phase !== undefined);
+}
+function isInternalEvent(ev) {
+  return !!(ev && (ev.exposure === 'audit' || ev.exposure === 'internal'));
+}
+function evSeq(ev) {
+  return (ev && typeof ev.seq === 'number' && isFinite(ev.seq)) ? ev.seq : -1;
+}
+// span_start/span_end 是同一动作的一对事件：结束事件覆盖进行中的行，避免一个动作出现两行。
+function mergeEnvelope(list, env) {
+  if (!list || !env) return list;
+  const same = list.findIndex(x => x && env.seq != null && x.seq === env.seq);
+  if (same >= 0) { list.splice(same, 1, env); return list; }
+  if (env.status && env.status !== 'running') {
+    const running = list.findIndex(x => x && x.kind === env.kind && x.status === 'running');
+    if (running >= 0) { list.splice(running, 1, env); return list; }
+  }
+  list.push(env);
+  return list;
+}
+function pushEnvelope(m, env) {
+  if (!m || !isEnvelope(env)) return;
+  if (!m.events) m.events = [];
+  mergeEnvelope(m.events, env);
+}
+function normalizeEnvelopes(rows) {
+  const out = [];
+  (rows || []).forEach(env => { if (isEnvelope(env)) mergeEnvelope(out, env); });
+  return out.sort((a, b) => evSeq(a) - evSeq(b));
+}
+// 时间线：系统真实动作按 seq 平铺；exposure=audit/internal 收进底部“内部过程”，不做任何分组。
+function timelineItems(m) {
+  const rows = [], internal = [];
+  displayEvents(m).forEach(ev => {
+    if (!ev || typeof ev !== 'object') return;
+    if (isInternalEvent(ev)) internal.push(ev); else rows.push(ev);
+  });
+  const bySeq = (a, b) => evSeq(a) - evSeq(b);
+  return { rows: rows.sort(bySeq), internal: internal.sort(bySeq) };
+}
+// 事件主文本：v3 后端给人话 text；旧数据没有 text 时回退 title，不展示英文 kind。
+function evText(ev) {
+  if (!ev || typeof ev !== 'object') return '';
+  if (typeof ev.text === 'string' && ev.text) return ev.text;
+  if (typeof ev.title === 'string' && ev.title) return ev.title;
+  return '';
+}
+// answer.delta 是增量片段：多段拼接后应等于最终 answer（最终 answer 帧整段覆盖，见 handleEvent）。
+function applyAnswerDelta(content, delta) {
+  const base = (content == null) ? '' : String(content);
+  const add = (delta && typeof delta.content === 'string') ? delta.content : '';
+  return base + add;
+}
+function isReplay(m) {
+  return !!(m && m.replay && m.replay.events && m.replay.events.length);
+}
+// 有回放时展示完整链路（含内部步骤），否则展示实时收到的 envelope；回放不覆盖实时数据。
+function displayState(m) { return isReplay(m) ? m.replay : m; }
+function displayEvents(m) {
+  const state = displayState(m);
+  return (state && state.events) || [];
+}
+function hasEvents(m) { return !!(m && m.events && m.events.length); }
+function replayStepCount(m) { return displayEvents(m).filter(ev => !isInternalEvent(ev)).length; }
+function replayInternalCount(m) { return displayEvents(m).filter(isInternalEvent).length; }
+function evKey(ev) {
+  if (!ev) return '';
+  return (ev.seq != null ? 's' + ev.seq : '') + '|' + (ev.kind || '') + '|' + (ev.ts || '');
+}
+function evRowClass(ev) {
+  if (!ev) return '';
+  if (ev.status === 'error') return 'tl-err';
+  if (ev.status === 'running') return 'tl-run';
+  return '';
+}
+function evIcon(ev) {
+  const st = ev && ev.status;
+  if (st === 'error') return '✗';
+  if (st === 'ok') return '✓';
+  if (st === 'skipped') return '⏭';
+  return '▶';
+}
+function evIconClass(ev) {
+  if (ev && ev.status === 'ok') return 'ok';
+  if (ev && ev.status === 'skipped') return 'skip';
+  return '';
+}
+function evMs(ev) {
+  const ms = ev && ev.metrics ? ev.metrics.ms : null;
+  if (typeof ms !== 'number' || !isFinite(ms) || ms <= 0) return '';
+  return (ms / 1000).toFixed(1) + 's';
+}
+function detailChips(ev) {
+  const d = (ev && ev.detail) || {};
+  const chips = [];
+  if (ev && ev.status === 'error') {
+    if (typeof d.error_type === 'string' && d.error_type) chips.push({ label: '错误', value: d.error_type });
+    else if (typeof d.reason === 'string' && d.reason) chips.push({ label: '原因', value: d.reason });
+  }
+  const keys = Object.keys(DETAIL_ZH);
+  for (let i = 0; i < keys.length && chips.length < 5; i++) {
+    const v = d[keys[i]];
+    if (typeof v === 'number' && isFinite(v) && v !== 0) chips.push({ label: DETAIL_ZH[keys[i]], value: v });
+  }
+  return chips;
+}
+// 结束摘要：思考 N 步 · 模型调用 M 次 · 用时 Xs（N=用户可见事件，M=kind=model.call 事件数）
+function thinkSummary(m) {
+  if (!m) return '';
+  const items = timelineItems(m);
+  const userN = items.rows.length;
+  const modelN = displayEvents(m).filter(ev => ev && ev.kind === 'model.call').length;
+  const use = m.elapsed ? ' · 用时 ' + m.elapsed + 's' : '';
+  if (userN || items.internal.length) {
+    const base = '思考 ' + userN + ' 步 · 模型调用 ' + modelN + ' 次' + use;
+    return m.status === 'interrupted' ? '本轮未正常完成 · ' + base : base;
+  }
+  if (m.progress && m.progress.length) return '思考 ' + m.progress.length + ' 步 · 模型调用 0 次' + use;
+  if (m.status === 'interrupted') return '本轮未正常完成';
+  return '已完成分析';
+}
+// 流式时面板顶部单行：优先用 envelope 的人话 text，没有 envelope 时回退旧 progress 字段。
+function latestProgress(m) {
+  if (!m) return '';
+  const evs = (m.events || []);
+  if (evs.length) {
+    let cur = evs[evs.length - 1];
+    for (let i = evs.length - 1; i >= 0; i--) {
+      if (evs[i] && evs[i].status === 'running') { cur = evs[i]; break; }
+    }
+    const t = evMs(cur) ? '（' + evMs(cur) + '）' : '';
+    const label = evText(cur) || '分析中';
+    if (cur.status === 'error') return label + ' 出错，正在回退' + t;
+    return (cur.status === 'running' ? '正在进行：' : '已完成：') + label + t;
+  }
+  const ps = (m.progress || []);
+  const p = ps.find(x => x.key === m.latestKey) || ps[ps.length - 1];
+  if (!p) return '正在解析家庭情况与匹配政策…' + (m.elapsed ? '（' + m.elapsed + 's）' : '');
+  const t = p.ms ? '（' + (p.ms / 1000).toFixed(1) + 's）' : '';
+  if (p.error) return p.label + ' 出错，正在重试或回退';
+  return (p.done ? '已完成：' : '正在进行：') + p.label + t;
+}
+function traceShort(id) { return String(id || '').slice(0, 8); }
+// ==================== （纯函数区结束） ====================
+
+createApp({
+  setup() {
+    const user = ref(null);
+    const authLoading = ref(true);
+    const authError = ref('');
+    const username = ref('');
+    const password = ref('');
+    const logging = ref(false);
+    const err = ref('');
+    const sessions = ref([]);
+    const currentSid = ref('');
+    const messages = ref([]);
+    const historyMore = ref(false), historyBefore = ref(null);
+    const input = ref('');
+    const asking = ref(false);
+    let activeController = null;   // 当前正在进行的回答请求（用于取消）
+    const chatBox = ref(null);
+    const showSurvey = ref(false);
+    const submitting = ref(false);
+    const householdProfile = ref(null);
+    const pendingReuseSession = ref(null);
+    const survey = ref({ member_no: 1, member_name: '', q1: '', q2: '', q3: '', q3_other: '',
+                         q4: '', q4_other: '', q5: '', q6: '', q7: '', q7_skill: '', q7_other: '',
+                         q8: '' });
+    const sessPage = ref(1);
+    const sessTotal = ref(0);
+    const sessPages = computed(() => Math.max(1, Math.ceil(sessTotal.value / 10)));
+    const asideWidth = ref(parseInt(localStorage.getItem('ask_aside_w') || '240', 10) || 240);
+    const surveyScore = computed(() => {
+      const s = survey.value, q1 = s.q1;
+      let sc = { '在家务农': 3, '外出打工': 2, '创业': 4, '都不想': 0 }[q1] || 0;
+      if (q1 === '在家务农') {
+        if (s.q3 || s.q4) sc += 3;
+        if (s.q5) sc += s.q5 === '需要' ? 3 : 1;
+      } else if (q1 === '创业') {
+        if (s.q5) sc += s.q5 === '需要' ? 3 : 1;
+      } else if (q1 === '外出打工') {
+        if (s.q7 === '想学') sc += 2;
+      } else if (q1 === '都不想') {
+        if (s.q8 === '愿意') sc += 2;
+      }
+      return sc;
+    });
+    const surveyLevel = computed(() => {
+      const sc = surveyScore.value;
+      return sc >= 8 ? '高' : (sc >= 5 ? '中' : (survey.value.q1 ? '低' : ''));
+    });
+    const surveyComplete = computed(() => {
+      const s = survey.value, q1 = s.q1;
+      if (!q1) return false;
+      if (q1 === '在家务农') {
+        if (!s.q2) return false;
+        if (s.q2 === '种植' && !(s.q3 && (s.q3 !== '其他' || s.q3_other))) return false;
+        if (s.q2 === '养殖' && !(s.q4 && (s.q4 !== '其他' || s.q4_other))) return false;
+        return !!s.q5;
+      }
+      if (q1 === '创业') return !!s.q5;
+      if (q1 === '外出打工') return !!s.q6 && !!s.q7;
+      if (q1 === '都不想') return !!s.q8;
+      return false;
+    });
+    const lastQuestion = ref('');
+    const exporting = ref(false);
+    const tableHeaders = TABLE_HEADERS;
+
+    // 补充家庭信息弹窗：questions 事件到达时自动弹出；可关闭，消息区保留提示条可重开
+    const qModal = ref(null);
+    const lastBotIdx = computed(() => {
+      for (let i = messages.value.length - 1; i >= 0; i--) if (messages.value[i].role === 'bot') return i;
+      return -1;
+    });
+    function openQModal(m) {
+      if (asking.value || !m || !m.questions || !m.questions.length) return;
+      qModal.value = m;
+    }
+    function closeQModal() { qModal.value = null; }
+
+    // 卡片展示辅助：待遇/流程缺收录时给统一口径；已满足条件去掉工程括注
+    function okText(s) { return String(s || '').replace('（家庭事实已证实）', ''); }
+    function benefitText(c) {
+      const b = String((c && c.benefit) || '').trim();
+      return (!b || b.indexOf('未收录') >= 0) ? '原资料未收录，请咨询主管部门' : b;
+    }
+    function processText(c) {
+      const p = String((c && c.process) || '').trim();
+      return (!p || p.indexOf('未收录') >= 0) ? '原资料未收录，请咨询主管部门' : p;
+    }
+
+    // ==================== 政策卡片预览抽屉 ====================
+    // 契约：GET /api/policy/preview?code=...&detail_id=...&county=...
+    // 返回 { policy, detail, details:[{detail_id,region}], excerpt, excerpt_truncated, excerpt_scope }
+    const previewOpen = ref(false);
+    const previewLoading = ref(false);
+    const previewErr = ref('');
+    const previewData = ref(null);
+    const previewCard = ref(null);
+    const pvPanel = ref(null);
+    const pvGeom = ref({ top: 58, bottom: 0 });
+    const pvWidth = ref(520);
+    const pvRequestedDetailId = ref(null);
+    const viewportW = ref((typeof window !== 'undefined' && window.innerWidth) || 1280);
+    const copyMsg = ref('');
+    let previewTrigger = null;
+    let pvSeq = 0;
+
+    const API_PREVIEW = '/api/policy/preview';
+
+    function defaultPvWidth() {
+      // 默认 520px，但窄屏不超过 42vw（下限 420px；<960px 由 CSS 改为全屏浮层）
+      return Math.round(Math.min(520, Math.max(420, viewportW.value * 0.42)));
+    }
+    function savedPvWidth() {
+      try {
+        const n = parseInt(localStorage.getItem('ask_pv_w') || '', 10);
+        return Number.isFinite(n) ? Math.min(860, Math.max(420, n)) : 0;
+      } catch (e) { return 0; }
+    }
+    function measurePreviewGeom() {
+      const header = document.querySelector('.layout > header');
+      const bar = document.querySelector('.inputbar');
+      const top = header ? header.getBoundingClientRect().height : 58;
+      const bottom = bar ? bar.getBoundingClientRect().height : 0;
+      pvGeom.value = { top: Math.max(0, Math.round(top || 58)), bottom: Math.max(0, Math.round(bottom || 0)) };
+    }
+    // 抽屉打开时把对话列让到抽屉左侧，避免当前消息被完全挡住（窄屏靠遮罩，不挤压）
+    const chatPadRight = computed(() => {
+      if (!previewOpen.value || viewportW.value <= 960) return 0;
+      return Math.round(pvWidth.value + 16);
+    });
+
+    // 空值统一占位“原文未提供”；兼容数组与后端返回的缺失标记
+    function pvText(v) {
+      if (Array.isArray(v)) {
+        v = v.map(x => String(x == null ? '' : x).trim())
+             .filter(x => x && x !== 'None' && x !== 'null' && x !== '未收录');
+        v = v.join('；');
+      }
+      const s = String(v == null ? '' : v).trim();
+      if (!s || s === 'None' || s === 'null' || s === '未收录' || s === '暂无') return '原文未提供';
+      return s;
+    }
+    function arrText(v) {
+      if (Array.isArray(v)) return v.map(x => String(x == null ? '' : x).trim()).filter(Boolean);
+      const s = String(v == null ? '' : v).trim();
+      return s ? [s] : [];
+    }
+
+    const pvTitle = computed(() => {
+      const p = (previewData.value && previewData.value.policy) || {};
+      const c = previewCard.value || {};
+      return p.name || c.name || p.code || c.code || '政策详情';
+    });
+    const pvCode = computed(() => {
+      const p = (previewData.value && previewData.value.policy) || {};
+      const c = previewCard.value || {};
+      return p.code || c.code || '';
+    });
+    const pvHeadChips = computed(() => {
+      const p = (previewData.value && previewData.value.policy) || {};
+      const out = [];
+      if (p.code) out.push(p.code);
+      if (p.level) out.push(p.level);
+      if (p.status) out.push(p.status);
+      if (p.cur_version) out.push('版本 ' + p.cur_version);
+      return out;
+    });
+    const pvDetailOptions = computed(() => {
+      const d = previewData.value;
+      const list = (d && Array.isArray(d.details)) ? d.details : [];
+      return list.filter(x => x && x.detail_id != null);
+    });
+    const pvDetailRegion = computed(() => {
+      const det = (previewData.value && previewData.value.detail) || null;
+      return det && det.region ? String(det.region) : '';
+    });
+    const pvDetailHint = computed(() => {
+      const d = previewData.value;
+      if (!d) return '';
+      const n = pvDetailOptions.value.length;
+      if (n <= 1 || pvRequestedDetailId.value != null) return '';
+      return '该政策有 ' + n + ' 条属地明细，当前展示全省/首条';
+    });
+    const pvDetailId = computed(() => {
+      const det = (previewData.value && previewData.value.detail) || null;
+      return det && det.detail_id != null ? det.detail_id : null;
+    });
+    const pvSections = computed(() => {
+      const d = previewData.value;
+      if (!d) return [];
+      const p = d.policy || {}, det = d.detail || {};
+      const rows = [];
+      if (p.category) rows.push(['政策类别', pvText(p.category)]);
+      if (p.level) rows.push(['政策层级', pvText(p.level)]);
+      const regionText = [pvDetailRegion.value, pvText(p.regions)].filter(x => x && x !== '原文未提供').join('；');
+      if (regionText) rows.push(['适用区域', regionText]);
+      if (p.effect_date) rows.push(['生效日期', pvText(p.effect_date)]);
+      if (p.status) rows.push(['政策状态', pvText(p.status)]);
+      if (p.cur_version) rows.push(['政策版本', pvText(p.cur_version)]);
+      if (p.source) rows.push(['数据来源', pvText(p.source)]);
+      const contact = pvText(det.contact || p.contact);
+      const phone = String(det.phone == null ? '' : det.phone).trim();
+      let contactText = contact;
+      if (contactText !== '原文未提供' && phone && contactText.indexOf(phone) < 0) contactText += '（电话：' + phone + '）';
+      else if (contactText === '原文未提供' && phone) contactText = '电话：' + phone;
+      const target = pvText(p.target);
+      return [
+        { title: '基本信息', rows: rows.length ? rows : null, text: rows.length ? '' : '原文未提供' },
+        { title: '适用对象', text: target },
+        { title: '申请条件', text: pvText(det.conditions || p.conditions) },
+        { title: '补贴标准', text: pvText(det.benefit || p.benefit) },
+        { title: '申领流程', text: pvText(det.process || p.process) },
+        { title: '联系方式', text: contactText },
+      ];
+    });
+    const pvBasis = computed(() => {
+      const c = previewCard.value || {};
+      return {
+        decision: String(c.decision || '').trim(),
+        satisfied: arrText(c.satisfied),
+        missing: arrText(c.missing),
+        gaps: arrText(c.source_gaps),
+      };
+    });
+    const pvBasisEmpty = computed(() => {
+      const b = pvBasis.value;
+      return !b.decision && !b.satisfied.length && !b.missing.length && !b.gaps.length;
+    });
+    const pvExcerptScope = computed(() => {
+      const d = previewData.value || {};
+      const s = String(d.excerpt_scope == null ? '' : d.excerpt_scope).trim();
+      return (s === 'detail' || s === 'policy') ? s : '';
+    });
+    const pvExcerptTitle = computed(() => (
+      pvExcerptScope.value === 'policy' ? '原文摘录（政策级，未标注属地）' : '原文摘录'
+    ));
+
+    function onCardClick(c, ev) {
+      const t = ev && ev.target;
+      if (t && t.closest && t.closest('a,button,summary,input,select,textarea')) return;
+      openPreview(c, ev ? ev.currentTarget : null);
+    }
+    function onCardKey(c, ev) {
+      const t = ev && ev.target;
+      if (t && t.closest && t.closest('a,button,summary,input,select,textarea')) return;
+      openPreview(c, ev.currentTarget);
+    }
+    function openPreview(c, trigger) {
+      if (!c || !c.code) return;
+      previewCard.value = c;
+      previewTrigger = trigger || previewTrigger;
+      previewOpen.value = true;
+      previewLoading.value = true;
+      previewErr.value = '';
+      previewData.value = null;
+      copyMsg.value = '';
+      pvRequestedDetailId.value = (c.detail_id != null && c.detail_id !== '') ? c.detail_id : null;
+      viewportW.value = (typeof window !== 'undefined' && window.innerWidth) || viewportW.value;
+      pvWidth.value = savedPvWidth() || defaultPvWidth();
+      measurePreviewGeom();
+      nextTick(() => { if (pvPanel.value && pvPanel.value.focus) { try { pvPanel.value.focus({ preventScroll: true }); } catch (e) { pvPanel.value.focus(); } } });
+      loadPreview();
+    }
+    async function loadPreview(extra) {
+      const c = previewCard.value;
+      if (!c || !c.code) return;
+      const seq = ++pvSeq;
+      previewLoading.value = true;
+      previewErr.value = '';
+      const detailId = extra && extra.detail_id != null ? extra.detail_id : pvRequestedDetailId.value;
+      const qs = ['code=' + encodeURIComponent(c.code)];
+      if (detailId != null && detailId !== '') qs.push('detail_id=' + encodeURIComponent(detailId));
+      const county = String(c.county || c.region || '').trim();
+      if (county) qs.push('county=' + encodeURIComponent(county));
+      try {
+        const r = await fetch(API_PREVIEW + '?' + qs.join('&'), { credentials: 'same-origin' });
+        if (seq !== pvSeq) return;
+        if (r.status === 401) { previewErr.value = '登录已过期，请刷新页面'; return; }
+        let data = null;
+        try { data = await r.json(); } catch (e) { data = null; }
+        if (seq !== pvSeq) return;
+        if (!r.ok || !data || !data.policy) { previewErr.value = '该政策预览暂时不可用'; return; }
+        previewData.value = data;
+      } catch (e) {
+        if (seq === pvSeq) previewErr.value = '该政策预览暂时不可用';
+      } finally {
+        if (seq === pvSeq) previewLoading.value = false;
+      }
+    }
+    function closePreview() {
+      if (!previewOpen.value) return;
+      pvSeq++;
+      previewOpen.value = false;
+      previewLoading.value = false;
+      const trigger = previewTrigger;
+      previewTrigger = null;
+      if (trigger && trigger.focus) {
+        nextTick(() => { try { trigger.focus({ preventScroll: true }); } catch (e) { trigger.focus(); } });
+      }
+    }
+    function switchPreviewDetail(d) {
+      if (!d || d.detail_id == null || !previewCard.value) return;
+      pvRequestedDetailId.value = d.detail_id;
+      loadPreview({ detail_id: d.detail_id });
+    }
+    function startPvDrag(e) {
+      const startX = e.clientX, startW = pvWidth.value;
+      function move(ev) {
+        pvWidth.value = Math.min(860, Math.max(420, startW - (ev.clientX - startX)));
+      }
+      function up() {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
+        try { localStorage.setItem('ask_pv_w', String(pvWidth.value)); } catch (e) {}
+      }
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+    }
+    async function copyPolicyCode() {
+      const code = pvCode.value;
+      if (!code) { copyMsg.value = '无可复制的编号'; return; }
+      let ok = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(code); ok = true;
+        }
+      } catch (e) { ok = false; }
+      if (!ok) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = code; ta.setAttribute('readonly', 'readonly');
+          ta.style.position = 'fixed'; ta.style.left = '-9999px';
+          document.body.appendChild(ta); ta.select();
+          ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+        } catch (e) { ok = false; }
+      }
+      copyMsg.value = ok ? '已复制编号' : '复制失败，请手动选择';
+      setTimeout(() => { copyMsg.value = ''; }, 1800);
+    }
+
+    async function json(url, opts) {
+      const r = await fetch(url, opts);
+      if (r.status === 401) { user.value = null; throw new Error('未登录'); }
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.msg || '请求失败');
+      return data;
+    }
+
+    function scrollBottom() {
+      nextTick(() => { const el = chatBox.value; if (el) el.scrollTop = el.scrollHeight; });
+    }
+    // 流式中让思考面板内部跟随最新一行；只滚最后一个面板（当前回答），已结束的历史面板不动。
+    function scrollThinkBody() {
+      nextTick(() => {
+        const box = chatBox.value;
+        if (!box) return;
+        const bodies = box.querySelectorAll('.think-body');
+        const body = bodies[bodies.length - 1];
+        if (body) body.scrollTop = body.scrollHeight;
+      });
+    }
+
+    async function doLogin() {
+      err.value = ''; logging.value = true;
+      try {
+        const r = await json(API + '/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: username.value, password: password.value }),
+        });
+        if (!r.ok) { err.value = r.msg || '登录失败'; return; }
+        if (!await AuthUI.ensure(r.user)) return;
+        password.value = '';
+        await enterWorkspace(r.user);
+      } catch (e) { err.value = '请求失败：' + e.message; }
+      finally { logging.value = false; }
+    }
+
+    async function logout() {
+      try { await json(API + '/logout', { method: 'POST' }); } catch (e) {}
+      user.value = null; password.value = '';
+    }
+
+    async function loadSessions(p) {
+      const page = p || sessPage.value || 1;
+      const r = await json(API + '/qa/sessions?page=' + page);
+      sessions.value = r.items || [];
+      sessTotal.value = r.total || 0;
+      sessPage.value = r.page || page;
+    }
+    function startDrag(e) {
+      const startX = e.clientX, startW = asideWidth.value;
+      function move(ev) {
+        asideWidth.value = Math.min(420, Math.max(200, startW + (ev.clientX - startX)));
+      }
+      function up() {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
+        localStorage.setItem('ask_aside_w', String(asideWidth.value));
+      }
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+    }
+    async function loadHistory(sid, earlier=false) {
+      const r = await json(API + '/qa/history?session_id=' + encodeURIComponent(sid) + (earlier && historyBefore.value ? '&before='+historyBefore.value : ''));
+      historyMore.value = !!r.has_more; historyBefore.value = r.before;
+      if (r.selected_model) currentModel.value = modelPlatforms.value.some(x => x.name === r.selected_model) ? r.selected_model : '';
+      const msgs = [];
+      (r.items || []).forEach(x => {
+        const ui = x.match_ui || {};
+        msgs.push({ role: 'user', content: x.question, streaming: false });
+        msgs.push({ role: 'bot', content: x.answer, streaming: false, model: x.model, status: x.status,
+                    sources: ui.sources || [],
+                    matched: (x.matched_policies || '').split(',').map(s => s.trim()).filter(Boolean),
+                    analysisMd: ui.analysis_md || '', tableRows: ui.table_rows || [],
+                    cards: ui.cards || [], questions: ui.questions || [],
+                    pendingAnswers: Object.fromEntries((ui.questions || []).filter(q => q.value !== undefined && q.value !== '').map(q => [q.key, q.value])), exportQ: x.question, qa_id: x.qa_id,
+                    // 历史消息回放：trace_id 由后端 qa_dict 补齐（老数据没有则为空，不影响旧展示）
+                    events: [], traceId: x.trace_id || '', replay: null, replayLoading: false, replayError: '' });
+      });
+      messages.value = earlier ? msgs.concat(messages.value) : msgs;
+      scrollBottom();
+    }
+    async function newSession() {
+      if (asking.value) return;
+      const previousSid = currentSid.value;
+      if (previousSid) {
+        try { const r = await json(API + '/qa/profile?session_id=' + encodeURIComponent(previousSid)); householdProfile.value = r.profile; } catch(e) { householdProfile.value = null; }
+      }
+      const hasProfile = householdProfile.value && householdProfile.value.policy_core && (householdProfile.value.members || []).length;
+      pendingReuseSession.value = previousSid && hasProfile && window.confirm('是否沿用当前会话已确认的家庭档案？确定：沿用；取消：分析新的家庭。') ? previousSid : null;
+      currentSid.value = newSid();
+      householdProfile.value = null;
+      messages.value = []; historyMore.value = false; historyBefore.value = null;
+      err.value = '';
+      loadSessions(1);
+    }
+    async function switchSession(sid) {
+      if (asking.value) return;
+      currentSid.value = sid;
+      pendingReuseSession.value = null;
+      householdProfile.value = null;
+      err.value = '';
+      await loadHistory(sid);
+    }
+
+    const STAGE_ZH = { 'household.parse': '解析家庭情况', 'rules.match': '规则匹配', 'policy.load': '加载政策库',
+      'vector.load': '加载语义索引', 'model.embed': '语义向量化', 'vector.search': '检索相关政策',
+      'graph.load': '加载知识图谱', 'graph.recall': '知识图谱召回', 'eligibility.verify': '逐条核验资格',
+      'candidates.merge': '汇总候选政策', 'model.answer': '模型推理', 'model.health': '模型健康检查',
+      'household.pipeline': '家庭档案核验', 'consultation.pipeline': '理解咨询问题', 'answer.pipeline': '匹配分析' };
+    const PURPOSE_ZH = { 'core_fact_extract': '抽取家庭事实', 'core_fact_audit': '审核事实抽取',
+      'core_omission_probe': '探查遗漏信息', 'showcase_fact_extract': '抽取家庭事实',
+      'showcase_fact_audit': '审核事实抽取', 'showcase_analysis': '逐条分析政策',
+      'showcase_analysis_audit': '审核分析决策', 'qa': '咨询问答', 'policy_direction': '研判政策方向',
+      'core_full_text_normalize': '规范家庭描述原文', 'core_full_text_verify': '校验原文理解',
+      'core_full_fact_extract': '抽取家庭事实', 'core_full_fact_audit': '审核事实抽取',
+      'core_full_member_repair': '核对家庭成员信息', 'core_full_retrieval_plan': '规划检索方向',
+      'core_full_rerank': '重排候选政策', 'core_full_primary_match': '初筛相关政策',
+      'core_full_reason': '逐条核验政策条件', 'core_full_reason_audit': '复核核验结论',
+      'core_full_scope_audit': '核对政策适用范围', 'core_full_advice': '整理政策建议',
+      'core_full_advice_audit': '审核政策建议', 'core_full_question_plan': '规划追问内容',
+      'core_full_question_bind': '组织追问问题', 'core_full_question_audit': '审核追问内容',
+      'core_full_explanation': '整理政策解释', 'core_full_explanation_audit': '审核政策解释',
+      'core_full_consultation': '理解您的问题', 'core_full_consultation_audit': '复核问题理解',
+      'core_full_omission_probe': '探查遗漏信息', 'core_full_branches_match': '核对政策分支',
+      'core_full_conflict_scope': '核对口径冲突', 'core_full_policy_compile': '汇编政策口径',
+      'core_consultation': '理解您的问题', 'core_consultation_audit': '复核问题理解',
+      'core_question_plan': '规划追问内容', 'core_question_bind': '组织追问问题',
+      'core_question_audit': '审核追问内容', 'core_explanation': '整理政策解释',
+      'core_explanation_audit': '审核政策解释', 'core_advice': '整理政策建议',
+      'core_advice_audit': '审核政策建议', 'policy_compile': '汇编政策口径',
+      'policy_gap_review': '核对政策缺口', 'policy_semantic_audit': '政策语义审核',
+      'policy_source_cases': '调取政策原文案例', 'policy_source_case_audit': '审核政策案例',
+      'policy_subject_contract': '解析政策对象条款', 'policy_type_repair': '修正政策类型' };
+    function progressLabel(ev) {
+      if (ev.stage) return STAGE_ZH[ev.stage] || '后台处理中';
+      const p = ev.purpose;
+      if (!p) return '模型分析中';
+      if (PURPOSE_ZH[p]) return PURPOSE_ZH[p];
+      // 未映射的目的名按后缀归类（core_full_* 为动态生成的键），绝不给用户看英文原码。
+      let base = p.replace(/_(audit_)?repair$/, '').replace(/_(id|enum)_repair$/, '');
+      if (base !== p && PURPOSE_ZH[base]) return PURPOSE_ZH[base] + '（自动修复）';
+      if (/audit$/.test(p)) return '内部质量复核';
+      if (/repair$/.test(p)) return '模型自检修复';
+      return '模型分析中';
+    }
+    // progress 事件：带 event envelope（事件流 v3）时平铺进时间线；没有 envelope 时完全回退旧逻辑。
+    function upsertProgress(m, ev) {
+      const env = (ev && ev.event && isEnvelope(ev.event)) ? ev.event : null;
+      if (env) {
+        pushEnvelope(m, env);
+        // 旧 progress 列表继续维护，供无 envelope 数据的降级展示与摘要兜底
+        if (!m.progress) m.progress = [];
+        const item = { key: ev.key || ('evt:' + env.kind + ':' + env.seq),
+                       label: env.text || env.title || progressLabel(ev),
+                       done: env.status ? env.status !== 'running' : !!ev.done,
+                       ms: (typeof ev.ms === 'number') ? ev.ms : ((env.metrics || {}).ms),
+                       error: env.status === 'error' || !!ev.error };
+        const idx = m.progress.findIndex(p => p.key === item.key);
+        if (idx >= 0) m.progress.splice(idx, 1, item); else m.progress.push(item);
+        m.latestKey = item.key;
+        // 流式中首次收到事件时自动展开一次；用户手动收起后（thinkAutoOpened 已置位）不再抢开
+        if (!m.thinkAutoOpened) { m.thinkAutoOpened = true; m.progressOpen = true; }
+        if (m.streaming && m.progressOpen) scrollThinkBody();
+        return;
+      }
+      if (!m.progress) m.progress = [];
+      const item = { key: ev.key, label: progressLabel(ev), done: !!ev.done, ms: ev.ms, error: !!ev.error };
+      const idx = m.progress.findIndex(p => p.key === item.key);
+      if (idx >= 0) m.progress.splice(idx, 1, item); else m.progress.push(item);
+      m.latestKey = item.key;
+      if (!m.thinkAutoOpened) { m.thinkAutoOpened = true; m.progressOpen = true; }
+      if (m.streaming && m.progressOpen) scrollThinkBody();
+    }
+    let thinkTimer = null;
+    function startThinkTicker() {
+      if (thinkTimer) return;
+      thinkTimer = setInterval(() => {
+        messages.value.forEach(m => { if (m.streaming && m.startTs) m.elapsed = Math.round((Date.now() - m.startTs) / 1000); });
+      }, 1000);
+    }
+    function stopThinkTicker() {
+      messages.value.forEach(m => { if (m.streaming && m.startTs) m.elapsed = Math.round((Date.now() - m.startTs) / 1000); });
+      if (thinkTimer) { clearInterval(thinkTimer); thinkTimer = null; }
+    }
+    watch(asking, v => { if (!v) stopThinkTicker(); });
+
+    function handleEvent(ev) {
+      if (!ev || typeof ev !== 'object') return;   // 坏帧已在 readSSE 过滤，这里再兜一层，保证不影响流
+      if (ev.type === 'session') currentSid.value = ev.session_id;
+      const last = messages.value[messages.value.length - 1];
+      if (!last || last.role !== 'bot') return;
+      // trace_id 随 session/progress/done 事件到达；保存到消息上供回放与排查使用（历史消息从 qa_dict 恢复）
+      if (ev.trace_id) last.traceId = ev.trace_id;
+      if (ev.type === 'progress') { upsertProgress(last, ev); return; }
+      if (ev.type === 'sources') last.sources = ev.items || [];
+      else if (ev.type === 'analysis') { last.analysisMd = ev.content || ''; scrollBottom(); }
+      else if (ev.type === 'table') { last.tableRows = ev.rows || []; scrollBottom(); }
+      else if (ev.type === 'cards') { last.cards = ev.items || []; scrollBottom(); }
+      else if (ev.type === 'questions') {
+        last.questions = ev.items || [];
+        last.pendingAnswers = last.pendingAnswers || {};
+        last.questions.forEach(q => {
+          if (q.value !== undefined && q.value !== '' && !(q.key in last.pendingAnswers)) last.pendingAnswers[q.key] = q.value;
+        });
+        scrollBottom();
+        // 自动弹窗放在 done 之后触发：流进行中 asking=true 会被 openQModal 守卫拦截
+      }
+      // answer.delta 是分段增量：逐段追加；最终 answer 帧整段覆盖，避免拼接重复
+      else if (ev.type === 'answer.delta') { last.content = applyAnswerDelta(last.content, ev); scrollBottom(); }
+      else if (ev.type === 'answer') { last.content = ev.content || ''; scrollBottom(); }
+      else if (ev.type === 'done') {
+        pendingReuseSession.value = null;
+        last.streaming = false;
+        last.progressOpen = false;
+        last.matched = ev.matched || [];
+        last.qa_id = ev.qa_id || last.qa_id;
+        last.model = ev.model; last.status = ev.status;
+        last.exportQ = lastQuestion.value || last.exportQ || '';
+        last.willMissing = ev.will_missing || false;
+        asking.value = false;
+        if (last.questions && last.questions.length) openQModal(last); // 流结束且有未答补充项 → 自动弹出
+        loadSessions();
+      } else if (ev.type === 'error') {
+        last.streaming = false;
+        last.progressOpen = false;
+        last.status = 'interrupted';
+        last.content = ev.msg || '本次未生成完整的匹配结果和 AI 建议，请重试。';
+        last.sources = []; last.matched = []; last.tableRows = []; last.cards = [];
+        last.questions = []; last.analysisMd = ''; last.exportQ = ''; last.model = '';
+        last.willMissing = false;
+        asking.value = false;
+        loadSessions();
+      }
+    }
+
+    async function readSSE(resp, onDone) {
+      if (resp.status === 401) { user.value = null; throw new Error('未登录'); }
+      if (!resp.ok || !resp.body) { const e = await resp.json().catch(()=>({})); throw new Error(e.msg || ('HTTP ' + resp.status)); }
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder(); let buf = '';
+      // SSE v2 块里可能有 id:/event:/data: 多行；旧服务只有 data: 行。坏帧只跳过，不中断整条流。
+      const consume = raw => {
+        try { const ev = decodeSSEFrame(raw); if (ev) handleEvent(ev); } catch (e) {}
+      };
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        buf = buf.replace(/\r\n/g, '\n').replace(/\r/g, '\n');   // 少数代理会改写换行
+        let idx;
+        while ((idx = buf.indexOf('\n\n')) >= 0) {
+          const raw = buf.slice(0, idx); buf = buf.slice(idx + 2);
+          consume(raw);
+        }
+      }
+      buf += dec.decode();                                          // 冲刷解码器尾部字节
+      buf.split('\n\n').forEach(raw => { if (raw.trim()) consume(raw); });
+      if (asking.value) { asking.value = false; throw new Error('连接中断，回答未确认保存，请刷新历史记录查看状态'); }
+      if (onDone) onDone();
+    }
+
+    function toggleThink(m) {
+      if (!m) return;
+      // 历史消息没有实时事件、也没有旧 progress 时，第一次展开改为拉取完整链路回放
+      if (!m.streaming && !isReplay(m) && !hasEvents(m)
+          && !(m.progress && m.progress.length) && m.qa_id) {
+        loadTrace(m);
+        return;
+      }
+      // 用户手动点过面板后，后续 progress 不再自动展开（手动收起后不抢开）
+      m.thinkAutoOpened = true;
+      m.progressOpen = !m.progressOpen;
+    }
+
+    // 分析链路回放：GET /api/qa/<qa_id>/events?since=0。全程同源 fetch 带 cookie，
+    // 只在面板内展示，绝不覆盖当前答案/来源/卡片内容；失败只提示“该轮链路未保留”。
+    async function loadTrace(m) {
+      if (!m || !m.qa_id) return;
+      if (isReplay(m)) { m.progressOpen = true; return; }
+      m.progressOpen = true;
+      m.replayLoading = true;
+      m.replayError = '';
+      try {
+        const data = await json(API + '/qa/' + encodeURIComponent(m.qa_id) + '/events?since=0',
+                                { headers: { Accept: 'application/json' } });
+        const rows = (data.events || []).map(x => (x && x.event) ? x.event : x);
+        const events = normalizeEnvelopes(rows);
+        if (!events.length) { m.replayError = '该轮链路未保留'; return; }
+        m.replay = { events: events };
+        if (data.trace_id) m.traceId = data.trace_id;
+      } catch (e) {
+        // 登录过期由全局 user=null 走登录页，这里不误报“链路未保留”
+        if (!(e && e.message === '未登录')) m.replayError = '该轮链路未保留';
+      } finally {
+        m.replayLoading = false;
+        scrollBottom();
+      }
+    }
+
+    async function send(preText) {
+      const q = (typeof preText === 'string' && preText.trim()) ? preText.trim() : input.value.trim();
+      if (!q || asking.value) return;
+      if (!currentSid.value) newSession();
+      err.value = '';
+      if (preText === undefined || preText === null) input.value = '';
+      asking.value = true;
+      lastQuestion.value = q;
+      messages.value.push({ role: 'user', content: q, streaming: false });
+      messages.value.push({ role: 'bot', content: '', streaming: true, sources: [], matched: [], exportQ: '',
+                            analysisMd: '', tableRows: [], cards: [], questions: [], pendingAnswers: {},
+                            progress: [], progressOpen: false, latestKey: null, startTs: Date.now(), elapsed: 0,
+                            events: [], traceId: '', replay: null, replayLoading: false, replayError: '' });
+      startThinkTicker();
+      scrollBottom();
+      const history = messages.value.slice(0, -1).slice(-12)
+        .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }));
+      const controller = new AbortController();
+      activeController = controller;
+      try {
+        const resp = await fetch(API + '/qa/stream', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q, session_id: currentSid.value, history, model: currentModel.value, source: 'ask-web', reuse_session_id: pendingReuseSession.value, reuse_confirmed: !!pendingReuseSession.value }),
+          signal: controller.signal,
+        });
+        await readSSE(resp);
+      } catch (e) {
+        if (e && e.name === 'AbortError') {
+          notifyCancel();
+          handleEvent({type:'error', msg:'回答已取消。'});
+        } else {
+          handleEvent({type:'error', msg:'请求失败：' + e.message});
+        }
+      } finally {
+        if (activeController === controller) activeController = null;
+      }
+      const last = messages.value[messages.value.length - 1];
+      if (last.streaming) last.streaming = false;
+      if (!last.content) last.content = '（本次未能生成回答，请重试）';
+      scrollBottom();
+    }
+
+    function notifyCancel() {
+      const sid = currentSid.value;
+      if (!sid) return;
+      fetch(API + '/qa/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ session_id: sid }) }).catch(() => {});
+    }
+    function cancelAsk() {
+      const controller = activeController;
+      if (controller) controller.abort();   // 中断 SSE；send/refine 的 AbortError 分支会统一收尾
+    }
+    function onSendClick() {
+      if (asking.value) cancelAsk();
+      else send();
+    }
+
+    async function refineMatch(m, skip=false) {
+      if (!m || asking.value) return;
+      const answers = Object.assign({}, m.pendingAnswers || {});
+      if (skip) (m.questions || []).forEach(q => { if (!answers[q.key]) answers[q.key] = '不清楚'; });
+      if (!Object.keys(answers).length) { err.value = '请先补充至少一项信息'; return; }
+      if (qModal.value === m) qModal.value = null;   // 提交/跳过后关闭弹窗
+      err.value = ''; asking.value = true;
+      // 用户气泡里显示人话（问题文案），不暴露字段键名；原消息的待补提示条同步撤下
+      const qs = m.questions || [];
+      const labelOf = k => { const q = qs.find(x => x.key === k); return q ? q.label : k; };
+      const summary = Object.entries(answers).map(([k,v]) => labelOf(k) + '：' + v).join('；');
+      m.questions = [];
+      messages.value.push({role:'user', content: skip ? '（跳过补充，未填项按“不清楚”继续核验）' : '【补充信息】' + summary});
+      m = {role:'bot', content:'', streaming:true, analysisMd:'', tableRows:[], cards:[], questions:[], sources:[], matched:[], pendingAnswers:{}, progress:[], progressOpen:false, latestKey:null, startTs:Date.now(), elapsed:0, events: [], traceId: '', replay: null, replayLoading: false, replayError: ''};
+      messages.value.push(m);
+      startThinkTicker();
+      scrollBottom();
+      const controller = new AbortController();
+      activeController = controller;
+      try {
+        const resp = await fetch(API + '/qa/refine', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSid.value, answers, model: currentModel.value }),
+          signal: controller.signal,
+        });
+        await readSSE(resp);
+      } catch (e) {
+        if (e && e.name === 'AbortError') {
+          notifyCancel();
+          handleEvent({type:'error', msg:'回答已取消。'});
+        } else {
+          handleEvent({type:'error', msg:'重新匹配失败：' + e.message});
+        }
+      } finally {
+        if (activeController === controller) activeController = null;
+      }
+      m.streaming = false;
+      if (!m.content) m.content = '（补充信息后未能生成回答，请重试）';
+      m.exportQ = m.exportQ || lastQuestion.value || '';
+      scrollBottom();
+    }
+
+    async function downloadMatch(m) {
+      const q = m && (m.exportQ || m.question || m.content || '');
+      if (!q || exporting.value) return;
+      exporting.value = true;
+      try {
+        const resp = await fetch(API + '/qa/export', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q, session_id: currentSid.value, member: '成员1',
+                                 threshold: 0.35, use_last: true, qa_id: (m && m.qa_id) || undefined }),
+        });
+        if (resp.status === 401) { user.value = null; throw new Error('未登录'); }
+        if (!resp.ok) {
+          const j = await resp.json().catch(() => ({}));
+          throw new Error(j.msg || '生成失败（HTTP ' + resp.status + '）');
+        }
+        const blob = await resp.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '户匹配结果_%s.xlsx'.replace('%s', new Date().toISOString().slice(0, 10));
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      } catch (e) {
+        err.value = '导出失败：' + e.message;
+      } finally {
+        exporting.value = false;
+      }
+    }
+
+    // 模型切换（管理员）：当前 LLM 平台列表来自 model_settings.yaml
+    const modelPlatforms = ref([]);
+    const currentModel = ref('');
+    const msOpen = ref(false);
+    const msroot = ref(null);
+    const uOpen = ref(false);
+    const uroot = ref(null);
+    function goAdmin() { location.href = '/#/overview'; }
+    const modelLabel = computed(() => {
+      const p = modelPlatforms.value.find(x => x.name === currentModel.value);
+      return p ? (p.model || p.name) : (currentModel.value || '默认模型');
+    });
+    async function loadModels() {
+      try {
+        const r = await json(API + '/model/current');
+        if (r.ok) { modelPlatforms.value = r.platforms || []; currentModel.value = r.current || ''; }
+      } catch (e) {}
+    }
+    async function switchModel(name) {
+      if (asking.value) return;
+      // 模型选择与会话解耦：未开始会话也可先选模型；服务端会按需创建会话记录
+      if (!currentSid.value) currentSid.value = newSid();
+      try {
+        const r = await json(API + '/model/switch', { method: 'POST',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ platform: name, session_id: currentSid.value }) });
+        if (r.ok) { currentModel.value = r.current; msOpen.value = false; if (r.session_id) currentSid.value = r.session_id; }
+        else alert(r.msg || '切换失败');
+      } catch (e) { alert('切换失败：' + e.message); }
+    }
+    onMounted(() => {
+      document.addEventListener('click', (e) => {
+        if (msroot.value && !msroot.value.contains(e.target)) msOpen.value = false;
+        if (uroot.value && !uroot.value.contains(e.target)) uOpen.value = false;
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && previewOpen.value) { e.preventDefault(); closePreview(); }
+      });
+      window.addEventListener('resize', () => {
+        viewportW.value = window.innerWidth || 1280;
+        measurePreviewGeom();
+        if (!savedPvWidth()) pvWidth.value = defaultPvWidth();
+      });
+    });
+
+    // 第8题人群自动判断：弱劳/半劳 或 60+ 才显示题8；明确普通劳动力且<60 隐藏；无信息默认显示
+    const q8Eligible = ref(true);
+    function updateQ8Eligible() {
+      const texts = messages.value.filter(m => m.role === 'user').slice(-3)
+                                   .map(m => m.content || m.question || '').join('\n');
+      const lm = texts.match(/劳动能力[:：]\s*([^\n，,。;；]+)/);
+      const labor = lm ? lm[1].trim() : '';
+      const am = texts.match(/年龄[:：]\s*(\d{1,3})/);
+      const age = am ? parseInt(am[1], 10) : null;
+      const weak = /弱劳|半劳/.test(labor);
+      if (labor && !weak && age !== null && age < 60) { q8Eligible.value = false; return; }
+      q8Eligible.value = true;
+    }
+    async function openSurvey() {
+      if (!currentSid.value) newSession();
+      try { const r = await json(API + '/qa/profile?session_id=' + encodeURIComponent(currentSid.value)); householdProfile.value = r.profile; } catch(e) { householdProfile.value = null; }
+      const members = (householdProfile.value || {}).members || [];
+      const last = members.length ? members[0].no : 1;
+      survey.value = { member_no: last, member_name: '', q1: '', q2: '', q3: '', q3_other: '',
+                       q4: '', q4_other: '', q5: '', q6: '', q7: '', q7_skill: '', q7_other: '',
+                       q8: '' };
+      updateSurveyMember();
+      showSurvey.value = true;
+    }
+    function updateSurveyMember(){
+      const member = ((householdProfile.value || {}).members || []).find(m=>m.no === Number(survey.value.member_no));
+      if(member){survey.value.member_name = member.name || '';const f = member.fields || {};q8Eligible.value = /弱劳|半劳/.test(f.labor || '') || Number(f.age) >= 60;}
+      else {updateQ8Eligible();}
+      if (!q8Eligible.value) survey.value.q8 = '';
+    }
+    function pick(key, val, clearKeys) {
+      survey.value[key] = val;
+      (clearKeys || []).forEach(k => { survey.value[k] = ''; });
+    }
+    async function submitSurvey() {
+      if (!surveyComplete.value || submitting.value) return;
+      submitting.value = true; err.value = '';
+      const s = survey.value;
+      const answers = {
+        q1: s.q1, q2: s.q2,
+        q3: s.q3 === '其他' ? (s.q3_other || '') : s.q3,
+        q4: s.q4 === '其他' ? (s.q4_other || '') : s.q4,
+        q5: s.q5, q6: s.q6, q7: s.q7,
+        q7_skill: s.q7_skill === '其他' ? (s.q7_other || '') : s.q7_skill,
+        q8: s.q8,
+      };
+      try {
+        const r = await json(API + '/survey/submit', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSid.value, member_no: s.member_no || 1,
+                                 member_name: s.member_name, answers }),
+        });
+        if (!r.ok) { err.value = r.msg || '问卷提交失败'; return; }
+        showSurvey.value = false;
+        await send(r.speech);
+      } catch (e) { err.value = '问卷提交失败：' + e.message; }
+      finally { submitting.value = false; }
+    }
+
+    async function enterWorkspace(account) {
+      user.value = account;
+      if (account.role === 'admin' && new URLSearchParams(location.search).get('next') === 'admin') {
+        location.replace('/#/overview');
+        return;
+      }
+      // Only an explicit allow-listed destination may redirect after login.
+      await loadSessions();
+      currentSid.value = newSid();
+      messages.value = []; historyMore.value = false; historyBefore.value = null;
+      await loadModels();
+    }
+    async function restoreLogin() {
+      authLoading.value = true;
+      authError.value = '';
+      try {
+        const r = await json(API + '/me');
+        if (r.user) {
+          if (!await AuthUI.ensure(r.user)) return;
+          await enterWorkspace(r.user);
+        } else {
+          user.value = null;
+        }
+      } catch (e) {
+        authError.value = '无法确认登录状态，请检查服务连接后重试：' + e.message;
+      } finally {
+        authLoading.value = false;
+      }
+    }
+    onMounted(restoreLogin);
+    return { authLoading, authError, restoreLogin, user, username, password, logging, err, sessions, currentSid, messages, input,
+             asking, chatBox, exporting, tableHeaders, md2html, okText, benefitText, processText,
+             sessPage, sessTotal, sessPages, asideWidth,
+             showSurvey, submitting, survey, surveyScore, surveyLevel, surveyComplete, q8Eligible,
+             modelPlatforms, currentModel, msOpen, modelLabel, msroot, switchModel,
+             qModal, lastBotIdx, openQModal, closeQModal, uOpen, uroot, goAdmin,
+             changePassword: () => AuthUI.passwordDialog(false, user.value),
+             doLogin, logout, newSession, switchSession, send, refineMatch, downloadMatch, onSendClick,
+             historyMore, loadHistory, loadSessions, startDrag, openSurvey, updateSurveyMember, pick, submitSurvey,
+             previewOpen, previewLoading, previewErr, previewData, previewCard, pvPanel, pvGeom, pvWidth,
+             pvTitle, pvHeadChips, pvSections, pvBasis, pvBasisEmpty, pvCode, pvDetailOptions, pvDetailId,
+             pvDetailRegion, pvDetailHint, pvExcerptScope, pvExcerptTitle, chatPadRight, copyMsg,
+             onCardClick, onCardKey, openPreview, closePreview, startPvDrag, switchPreviewDetail, copyPolicyCode,
+             latestProgress,
+             // 事件流 v3：平铺时间线 / 回放相关
+             hasEvents, thinkSummary, timelineItems, evText, toggleThink,
+             loadTrace, replayStepCount, replayInternalCount, evKey, evRowClass, evIcon, evIconClass, evMs,
+             detailChips, isReplay, traceShort };
+  },
+}).mount('#app');
+</script>
+</body>
+</html>

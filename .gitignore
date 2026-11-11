@@ -1,0 +1,81 @@
+# ============================================================
+# 发布仓库忽略规则
+# 这个仓库（main 分支）只放：代码 + 项目架构 + 脱敏模板 + 占位说明。
+# 个人信息数据、政策原始数据、真实密钥、模型权重、运行期产物一律不入库。
+# 本地运行前，按 docs/数据准备与目录说明.md 从 U 盘私密数据包恢复数据。
+# ============================================================
+
+# ---- 业务数据（data/ 根目录；local_evidence 按原文件名做 SHA256 校验）----
+/data/*.xlsx
+/data/*.docx
+/data/*.wps
+/data/*.pdf
+/data/*.ndjson
+/data/*.sqlite
+/data/*.db
+
+# ---- 政策库与运营资料（保留各目录 README 作为架构占位）----
+/data/policy_db/*
+!/data/policy_db/README.md
+/data/incoming/*
+!/data/incoming/README.md
+
+# ---- 政策证据包与运行缓存 ----
+/src/data/*
+!/src/data/README.md
+
+# ---- 政策展示（showcase）业务数据：含真实政策文号/金额，不进仓库 ----
+/src/policy_core/showcase_snapshot.json
+/src/policy_core/showcase_contracts.json
+/src/policy_core/showcase_review.json
+
+# ---- 模型资产：权重不入库；仅 4B 嵌入 tokenizer（~11MB，公开文本资产）随仓库 ----
+/models/*
+!/models/README.md
+!/models/qwen3-embedding-4b/
+/models/qwen3-embedding-4b/*
+!/models/qwen3-embedding-4b/tokenizer.json
+!/models/qwen3-embedding-4b/sentence_bert_config.json
+
+# ---- 用户上传样例 ----
+/src/uploads/*
+!/src/uploads/README.md
+
+# ---- 运行日志与评测产物 ----
+/src/logs/
+/src/eval/*.json
+/src/eval/*.jsonl
+/src/eval/*.db
+/src/eval/*.md
+/src/eval/*.txt
+/src/eval/*.csv
+/src/static/exports/
+
+# ---- 真实配置与密钥（仓库只保留 *.example 脱敏模板）----
+/deploy/web.env
+/deploy/web.gray.env
+/deploy/web.env.local
+/deploy/model.env
+/config/model_settings.yaml
+*.pem
+*.key
+
+# ---- 运行期状态与本地数据 ----
+/runtime/
+/run/
+
+# ---- 历史敏感资料（含个人信息，只留在本机与 U 盘私密包）----
+/docs/history/
+
+# ---- 缓存 / 备份 / 本地环境 ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.bak
+*.bak_*
+*.backup_*
+/.agents/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,23 @@
+[Unit]
+Description=Smart Help embedding and reranker GPU service
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=adminroot
+Group=adminroot
+WorkingDirectory=/home/adminroot/smart-help/Langchain-Chatchat-master/admin_panel
+EnvironmentFile=/home/adminroot/smart-help/deploy/model.env
+ExecStart=/home/adminroot/miniforge3/envs/smart-help-gpu/bin/gunicorn --bind 127.0.0.1:8090 --workers 1 --threads 1 --timeout 300 --graceful-timeout 30 --access-logfile - --error-logfile - gpu_wsgi:create_app()
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=180
+TimeoutStopSec=60
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

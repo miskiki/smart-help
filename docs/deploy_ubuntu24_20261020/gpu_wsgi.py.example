@@ -1,0 +1,31 @@
+"""Target-side Gunicorn factory; copy to deploy/gpu_wsgi.py before use.
+
+Reuses the project's HTTP handlers, pins both models to GPU and keeps the
+existing normalization and default float precision. One worker, no preload.
+"""
+import os
+from pathlib import Path
+
+
+def create_app():
+    import torch
+    from sentence_transformers import SentenceTransformer, CrossEncoder
+    import serve_local_models as service
+
+    if not torch.cuda.is_available():
+        raise RuntimeError('GPU unavailable; refusing silent CPU fallback')
+    embed = Path(os.environ['LOCAL_EMBED_PATH']).resolve()
+    rerank = Path(os.environ['LOCAL_RERANK_PATH']).resolve()
+    if not embed.is_dir() or not rerank.is_dir():
+        raise RuntimeError('Complete local model directories are required')
+    service._embedder = SentenceTransformer(str(embed), device='cuda:0')
+    service._reranker = CrossEncoder(str(rerank), device='cuda:0')
+    if service._embedder.device.type != 'cuda':
+        raise RuntimeError('Embedding model is not on CUDA')
+    if next(service._reranker.model.parameters()).device.type != 'cuda':
+        raise RuntimeError('Rerank model is not on CUDA')
+    print('GPU models ready:', torch.cuda.get_device_name(0),
+          'embedding=', service._embedder.device,
+          'rerank=', next(service._reranker.model.parameters()).device,
+          flush=True)
+    return service.app

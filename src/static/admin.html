@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>政策管理后台</title>
+<style>
+/* 与现有管理后台（index.html/app.js）保持同一套视觉语言，本页不引入 Vue 等第三方依赖。 */
+* { margin:0; padding:0; box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { font-family:'Microsoft YaHei','PingFang SC',sans-serif; background:#f2f4f8; color:#222; font-size:13px; }
+a { text-decoration:none; color:#2563eb; }
+a:hover { text-decoration:underline; }
+/* ---------- 登录 ---------- */
+.login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#e8edf5; }
+.login-card { width:380px; background:#fff; border-radius:10px; padding:36px 32px; box-shadow:0 6px 24px rgba(31,60,120,.12); }
+.login-card h1 { font-size:20px; margin-bottom:6px; }
+.login-card p.sub { color:#888; font-size:13px; margin-bottom:22px; }
+.login-card input { width:100%; height:40px; border:1px solid #d4d9e2; border-radius:6px; padding:0 12px; font-size:14px; margin-bottom:14px; }
+.login-card button { width:100%; height:40px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-size:15px; cursor:pointer; }
+.login-card button:hover { background:#1d4ed8; }
+.login-card button:disabled { opacity:.6; cursor:default; }
+.login-card .err { color:#dc2626; font-size:13px; margin-bottom:10px; min-height:18px; }
+.login-card .hint { color:#666; font-size:12px; line-height:1.7; margin-top:12px; }
+/* ---------- 顶部 ---------- */
+.topbar { background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.06); padding:12px 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; position:sticky; top:0; z-index:20; }
+.topbar .brand { font-size:17px; font-weight:700; color:#1f2d3d; }
+.topbar .flags { display:flex; gap:8px; flex-wrap:wrap; flex:1; }
+.flag { display:inline-flex; align-items:center; padding:3px 10px; border-radius:12px; background:#eef2f7; color:#555; font-size:12px; white-space:nowrap; cursor:help; }
+.flag .dot { width:8px; height:8px; border-radius:50%; background:#9aa5b1; display:inline-block; margin-right:6px; }
+.flag.on { background:#dcfce7; color:#15803d; }
+.flag.on .dot { background:#16a34a; }
+.flag.off { background:#fee2e2; color:#b91c1c; }
+.flag.off .dot { background:#dc2626; }
+.topbar .userbox { display:flex; align-items:center; gap:12px; font-size:13px; color:#555; }
+/* ---------- 主体 ---------- */
+main { padding:18px 24px 70px; max-width:1500px; margin:0 auto; }
+.card { background:#fff; border-radius:8px; padding:18px 20px; box-shadow:0 1px 4px rgba(0,0,0,.06); margin-bottom:14px; }
+.card.disabled { opacity:.62; }
+.card.disabled button, .card.disabled input, .card.disabled select, .card.disabled textarea { pointer-events:none; }
+.card h2 { font-size:16px; }
+.card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.searchbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+.searchbar input, .searchbar select { height:34px; border:1px solid #d4d9e2; border-radius:6px; padding:0 10px; font-size:13px; background:#fff; }
+.searchbar input { width:260px; }
+.btn { display:inline-block; padding:7px 14px; border:none; border-radius:6px; font-size:13px; cursor:pointer; color:#333; background:#e5e9f0; }
+.btn:hover { filter:brightness(.96); }
+.btn:disabled { opacity:.55; cursor:default; filter:none; }
+.btn-blue { background:#2563eb; color:#fff; }
+.btn-green { background:#16a34a; color:#fff; }
+.btn-red { background:#dc2626; color:#fff; }
+.btn-gray { background:#e5e9f0; color:#333; }
+.btn-row { display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 4px; }
+.tips { background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:6px; padding:9px 12px; margin:10px 0; line-height:1.7; }
+table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
+table.tbl th { background:#f5f7fa; text-align:left; padding:9px 10px; font-weight:600; border-bottom:1px solid #e5e9f0; white-space:nowrap; }
+table.tbl td { padding:8px 10px; border-bottom:1px solid #f0f2f6; vertical-align:top; }
+table.tbl tr.policy-row { cursor:pointer; }
+table.tbl tr.policy-row:hover td { background:#f8fafd; }
+table.tbl tr.policy-row.selected td { background:#eff6ff; }
+.tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+.tag-ok { background:#dcfce7; color:#15803d; }
+.tag-wait { background:#fef3c7; color:#b45309; }
+.tag-no { background:#fee2e2; color:#b91c1c; }
+.badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; background:#eef2f7; color:#555; }
+.badge-blue { background:#dbeafe; color:#1d4ed8; }
+.badge-gray { background:#f1f5f9; color:#94a3b8; }
+.model-item { border:1px solid #e5e9f0; border-radius:8px; padding:12px 14px; margin-bottom:10px; background:#fafbfd; }
+.model-item-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+.pager { display:flex; align-items:center; gap:10px; margin-top:12px; font-size:13px; color:#555; flex-wrap:wrap; }
+.pager button { padding:5px 12px; border:1px solid #d4d9e2; background:#fff; border-radius:5px; cursor:pointer; }
+.pager button:disabled { opacity:.5; cursor:default; }
+.empty { text-align:center; color:#999; padding:30px 0; }
+.muted { color:#999; font-size:12px; }
+.form-row { display:flex; gap:10px; align-items:center; margin:8px 0; flex-wrap:wrap; }
+.form-row > label { width:70px; color:#555; flex:none; }
+.form-row input[type=text], .form-row input[type=file] { height:34px; border:1px solid #d4d9e2; border-radius:6px; padding:0 10px; font-size:13px; background:#fff; width:360px; max-width:70vw; }
+.result { margin-top:12px; border:1px solid #e5e9f0; border-radius:8px; padding:12px 14px; background:#fafbfd; }
+.result h4 { font-size:14px; margin:10px 0 8px; }
+.result h4:first-child { margin-top:0; }
+.kv { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:6px 14px; line-height:1.7; }
+.kv .k { color:#777; }
+.mini-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }
+.mini-table th { background:#f5f7fa; text-align:left; padding:6px 8px; border-bottom:1px solid #e5e9f0; }
+.mini-table td { padding:5px 8px; border-bottom:1px solid #f0f2f6; word-break:break-all; }
+.err-box { background:#fee2e2; border:1px solid #fecaca; color:#b91c1c; border-radius:6px; padding:9px 12px; margin:10px 0; line-height:1.6; word-break:break-all; }
+.ok-box { background:#dcfce7; border:1px solid #bbf7d0; color:#15803d; border-radius:6px; padding:9px 12px; margin:10px 0; }
+.warn-box { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; border-radius:6px; padding:10px 12px; margin:10px 0; line-height:1.7; }
+/* ---------- 弹窗抽屉 ---------- */
+.modal-mask { position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex; align-items:flex-start; justify-content:center; padding:48px 12px 24px; z-index:50; overflow:auto; }
+.modal { width:820px; max-width:96vw; background:#fff; border-radius:10px; padding:20px 24px; box-shadow:0 18px 50px rgba(15,23,42,.25); }
+.modal-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.modal-head h3 { font-size:16px; word-break:break-all; }
+.modal-head .close { border:none; background:none; font-size:24px; line-height:1; color:#999; cursor:pointer; }
+.modal-head .close:hover { color:#333; }
+.modal label { display:block; color:#555; margin:12px 0 5px; }
+.modal textarea { width:100%; min-height:70px; border:1px solid #d4d9e2; border-radius:6px; padding:8px 10px; font-size:13px; font-family:inherit; resize:vertical; }
+.modal select { height:34px; border:1px solid #d4d9e2; border-radius:6px; padding:0 10px; font-size:13px; background:#fff; min-width:220px; max-width:100%; }
+.modal .check { display:flex; align-items:center; gap:8px; color:#555; margin:12px 0; user-select:none; }
+.modal .check input { width:auto; }
+.modal .foot { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap; }
+/* ---------- 模型区：类型 Tab + 卡片网格 ---------- */
+.tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.tab { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border:1px solid #d4d9e2; border-radius:6px; background:#fff; color:#333; font-size:13px; cursor:pointer; }
+.tab:hover { background:#f5f7fa; }
+.tab.active { background:#2563eb; border-color:#2563eb; color:#fff; }
+.tab.active b { background:#1d4ed8; color:#fff; }
+.tab b { display:inline-block; min-width:20px; text-align:center; padding:1px 7px; border-radius:10px; background:#eef2f7; color:#555; font-size:12px; font-weight:600; }
+.model-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; margin-top:4px; }
+.model-card { background:#fafbfd; border:1px solid #e5e9f0; border-radius:8px; padding:12px 14px; }
+.model-card--add { align-items:center; justify-content:center; min-height:112px; display:flex; border-style:dashed; background:#fff; color:#2563eb; font-size:14px; cursor:pointer; }
+.model-card--add:hover { border-color:#2563eb; background:#eff6ff; }
+/* ---------- 模型抽屉 ---------- */
+.model-drawer-mask { position:fixed; inset:0; background:rgba(15,23,42,.38); z-index:49; }
+.model-drawer-mask[hidden] { display:none; }
+.model-drawer-card { position:fixed; top:0; right:0; bottom:0; width:520px; max-width:96vw; background:#fff; box-shadow:-8px 0 30px rgba(15,23,42,.18); z-index:50; display:flex; flex-direction:column; }
+.drawer-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 20px; border-bottom:1px solid #e5e9f0; flex:none; }
+.drawer-head h3 { font-size:16px; word-break:break-all; }
+.drawer-head .close { border:none; background:none; font-size:24px; line-height:1; color:#999; cursor:pointer; }
+.drawer-head .close:hover { color:#333; }
+#model-form-body { padding:16px 20px; overflow:auto; flex:1; }
+.drawer-foot { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; padding:14px 20px; border-top:1px solid #e5e9f0; flex:none; }
+.cred-card { border:1px solid #e5e9f0; border-radius:8px; padding:12px 14px; background:#fafbfd; margin:10px 0; }
+.cred-state { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; background:#eef2f7; color:#555; }
+.cred-state--configured { background:#dcfce7; color:#166534; }
+.cred-state--unconfigured { background:#f1f5f9; color:#64748b; }
+.cred-state--editing { background:#fef3c7; color:#92400e; }
+#save-test-result.ok { color:#166534; }
+#save-test-result.bad { color:#b91c1c; }
+/* ---------- 轻提示 ---------- */
+.toast { position:fixed; right:22px; bottom:22px; max-width:min(560px,90vw); background:#1f2d3d; color:#fff; padding:10px 16px; border-radius:8px; font-size:13px; line-height:1.6; box-shadow:0 8px 24px rgba(0,0,0,.22); opacity:0; transform:translateY(8px); transition:all .18s; pointer-events:none; z-index:80; word-break:break-all; }
+.toast.show { opacity:1; transform:translateY(0); }
+.toast.error { background:#b91c1c; }
+.toast.ok { background:#15803d; }
+@media (max-width:760px) {
+  main { padding:12px 10px 60px; }
+  .topbar { padding:10px 12px; }
+  .searchbar input { width:100%; }
+  .form-row > label { width:100%; }
+  .form-row input[type=text], .form-row input[type=file] { width:100%; }
+  .model-grid { grid-template-columns:1fr; }
+  .model-drawer-card { width:100%; max-width:100vw; }
+}
+</style>
+</head>
+<body>
+
+<!-- 登录：JWT 在 HttpOnly cookie 中，登录成功后后端设置 cookie，前端不需要保存 token。 -->
+<div id="login-view" class="login-wrap" hidden>
+  <form id="login-form" class="login-card" autocomplete="on">
+    <h1>政策管理后台</h1>
+    <p class="sub">管理员登录 · 政策检索 / 生命周期 / 批量导入</p>
+    <div id="login-err" class="err"></div>
+    <input id="login-user" name="username" placeholder="用户名" autocomplete="username" maxlength="32" required>
+    <input id="login-pass" name="password" type="password" placeholder="密码" autocomplete="current-password" maxlength="128" required>
+    <button id="login-btn" type="submit">登录</button>
+    <p id="login-hint" class="hint"></p>
+  </form>
+</div>
+
+<div id="app-view" hidden>
+  <header class="topbar">
+    <div class="brand">政策管理后台</div>
+    <div class="flags">
+      <span class="flag" id="flag-lifecycle" title="通过只读 GET /api/policies/__probe__/impact 探测；不读取环境变量"><i class="dot"></i><span class="flag-txt">生命周期：检测中…</span></span>
+      <span class="flag" id="flag-import" title="通过只读 GET /api/policies/import/__probe__ 探测；该 GET 的建表语句随只读事务回滚，不产生持久写入"><i class="dot"></i><span class="flag-txt">批量导入：检测中…</span></span>
+    </div>
+    <div class="userbox">
+      <span id="who"></span>
+      <a href="/ask">返回问答页</a>
+      <button id="logout-btn" class="btn btn-gray" type="button">退出登录</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ========== ① 政策检索 ========== -->
+    <section class="card" id="search-card">
+      <div class="card-head">
+        <h2>政策检索</h2>
+        <span class="muted" id="search-count"></span>
+      </div>
+      <form id="search-form" class="searchbar">
+        <input id="f-kw" type="text" placeholder="关键词：政策名称 / 编号 / 文号" maxlength="80">
+        <select id="f-level"><option value="">全部层级</option></select>
+        <select id="f-status"><option value="">全部状态</option></select>
+        <select id="f-region"><option value="">全部地区</option></select>
+        <select id="f-cat"><option value="">全部类型</option></select>
+        <button id="search-btn" class="btn btn-blue" type="submit">查询</button>
+        <button id="reset-btn" class="btn btn-gray" type="button">重置</button>
+      </form>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>政策编号</th><th>政策名称</th><th>层级</th><th>状态</th>
+            <th>版本</th><th>地区</th><th>更新时间</th>
+          </tr>
+        </thead>
+        <tbody id="policy-rows"></tbody>
+      </table>
+      <div id="policy-empty" class="empty" hidden>暂无数据</div>
+      <div class="pager">
+        <button id="prev-btn" type="button">上一页</button>
+        <span id="page-info">第 1 / 1 页</span>
+        <button id="next-btn" type="button">下一页</button>
+      </div>
+    </section>
+
+    <!-- ========== ② 生命周期操作 ========== -->
+    <section class="card" id="lifecycle-card">
+      <div class="card-head">
+        <h2>生命周期操作</h2>
+        <span class="muted" id="lc-current">先在政策检索列表点击一行选择政策</span>
+      </div>
+      <div id="lc-disabled-tip" class="tips" hidden>政策生命周期接口未启用（POLICY_LIFECYCLE=0），本区块暂时不可操作。所有按钮仍会由后端二次校验，不会误改数据。</div>
+      <div class="btn-row">
+        <button class="btn btn-gray" type="button" data-action="suspend">暂停</button>
+        <button class="btn btn-gray" type="button" data-action="archive">归档</button>
+        <button class="btn btn-green" type="button" data-action="restore">恢复</button>
+        <button class="btn btn-blue" type="button" data-action="publish">发布版本</button>
+        <button class="btn btn-gray" type="button" data-action="rollback">回滚版本</button>
+        <button class="btn btn-red" type="button" data-action="delete">删除</button>
+      </div>
+      <div id="lc-result" class="result" hidden></div>
+    </section>
+
+    <!-- ========== ③ 政策批量导入 ========== -->
+    <section class="card" id="import-card">
+      <div class="card-head">
+        <h2>政策批量导入</h2>
+        <span class="muted">CSV / XLSX / JSON；预览与创建批次都不直接对外生效，提交后才写入政策库</span>
+      </div>
+      <div id="import-disabled-tip" class="tips" hidden>政策批量导入接口未启用（POLICY_IMPORT=0），本区块暂时不可操作。请运维确认开关后再使用。</div>
+      <div class="form-row">
+        <label for="import-file">选择文件</label>
+        <input id="import-file" type="file" accept=".csv,.xlsx,.json">
+      </div>
+      <div class="form-row">
+        <label for="import-source">来源</label>
+        <input id="import-source" type="text" placeholder="如：2026 年政策文件第一批（选填）" maxlength="120">
+      </div>
+      <div class="form-row">
+        <label for="import-note">备注</label>
+        <input id="import-note" type="text" placeholder="选填；提交/回滚时写入操作审计" maxlength="500">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-gray" type="button" id="preview-btn">预览校验</button>
+        <button class="btn btn-blue" type="button" id="create-btn">创建批次并导入</button>
+        <button class="btn btn-gray" type="button" id="report-btn">查看批次报告</button>
+        <button class="btn btn-green" type="button" id="commit-btn">提交批次</button>
+        <button class="btn btn-red" type="button" id="rollback-btn">回滚批次</button>
+      </div>
+      <div class="form-row">
+        <label for="import-batch">批次号</label>
+        <input id="import-batch" type="text" placeholder="创建批次后自动填入，也可手动输入" maxlength="64">
+      </div>
+      <div id="import-report" class="result" hidden></div>
+    </section>
+
+    <!-- ========== ④ 模型管理 ========== -->
+    <section class="card" id="models-card">
+      <div class="card-head">
+        <h2>模型管理</h2>
+        <span class="muted">自定义连接对话 / 嵌入 / 重排模型（MODEL_REGISTRY 开关控制生效）</span>
+      </div>
+      <!-- 类型 Tab：data-mtype 空串=全部；计数徽标 #model-tab-count-<type> 由 JS 填 -->
+      <div class="tabs" id="model-tabs">
+        <button class="tab" type="button" data-mtype="">全部 <b id="model-tab-count-">0</b></button>
+        <button class="tab" type="button" data-mtype="chat">对话 <b id="model-tab-count-chat">0</b></button>
+        <button class="tab" type="button" data-mtype="embed">嵌入 <b id="model-tab-count-embed">0</b></button>
+        <button class="tab" type="button" data-mtype="rerank">重排 <b id="model-tab-count-rerank">0</b></button>
+      </div>
+      <!-- 卡片网格：空容器，JS（Task 4）渲染 .model-card -->
+      <div class="model-grid" id="model-grid"></div>
+    </section>
+  </main>
+
+  <!-- 政策详情抽屉：影响预检 + 版本链，只读 -->
+  <div class="modal-mask" id="drawer-mask" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="drawer-title">政策详情</h3>
+        <button class="close" type="button" data-close="drawer-mask" aria-label="关闭">×</button>
+      </div>
+      <div id="drawer-body"></div>
+    </div>
+  </div>
+
+  <!-- 生命周期操作弹窗：影响预览 → 填写原因 → 确认执行（恢复/删除需二次确认） -->
+  <div class="modal-mask" id="action-mask" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="action-title">生命周期操作</h3>
+        <button class="close" type="button" data-close="action-mask" aria-label="关闭">×</button>
+      </div>
+      <div id="action-body"></div>
+    </div>
+  </div>
+
+  <!-- 模型编辑抽屉：右侧滑出，新增 / 编辑；凭证（api_key）编辑时走独立子资源，不随普通保存覆盖。
+       本 Task 只到骨架：#model-form-body 字段留空（Task 4 填），#save-test-btn 为保存前测试入口 -->
+  <div class="model-drawer-mask" id="model-drawer" hidden>
+   <div class="model-drawer-card" id="model-drawer-card">
+    <div class="drawer-head">
+      <h3 id="model-modal-title">添加模型</h3>
+      <button class="close" type="button" data-close="model-drawer" aria-label="关闭">×</button>
+    </div>
+    <div id="model-form-body">
+      <div class="form-row">
+        <label for="mf-name">名称（展示用）</label>
+        <input id="mf-name" type="text" maxlength="100" placeholder="如：通义千问 Plus">
+      </div>
+      <div class="form-row">
+        <label for="mf-type">类型</label>
+        <select id="mf-type">
+          <option value="chat">对话（chat）</option>
+          <option value="embed">嵌入（embed）</option>
+          <option value="rerank">重排（rerank）</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="mf-provider">服务商</label>
+        <select id="mf-provider"></select>
+      </div>
+      <div class="form-row">
+        <label for="mf-base-url">Base URL</label>
+        <input id="mf-base-url" type="text" placeholder="https://api.openai.com/v1">
+      </div>
+      <div class="form-row">
+        <label for="mf-model-name">模型名（API 调用值）</label>
+        <input id="mf-model-name" type="text" placeholder="如：qwen-plus">
+      </div>
+      <!-- 凭证三态卡容器：新建态在此收集 api_key（保存时随 POST 提交一次）；
+           编辑态卡片自己走 /credentials 子资源，绝不进模型表单 payload -->
+      <div class="form-row" id="mf-api-key-row">
+        <label>API Key</label>
+        <div id="model-cred-box"></div>
+      </div>
+      <div class="form-row" id="mf-dim-row" hidden>
+        <label for="mf-dim">向量维度</label>
+        <input id="mf-dim" type="number" min="128" max="4096" placeholder="如：1536">
+      </div>
+      <div class="form-row" id="mf-query-row" hidden>
+        <label for="mf-query-instruction">查询指令前缀（嵌入模型用，选填）</label>
+        <input id="mf-query-instruction" type="text" maxlength="500" placeholder="如：为这个句子生成表示以用于检索相关政策">
+      </div>
+      <div class="form-row" id="mf-json-row" hidden>
+        <label style="display:flex;align-items:center;gap:6px">
+          <input id="mf-json-mode" type="checkbox"> 强制 JSON 模式（对话模型）
+        </label>
+      </div>
+      <div id="save-test-result" class="result" hidden></div>
+      <div id="model-form-error" class="result" hidden></div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn btn-gray" type="button" id="save-test-btn">保存前测试</button>
+      <button class="btn btn-blue" type="button" id="model-save-btn">保存</button>
+      <button class="btn btn-gray" type="button" data-close="model-drawer">取消</button>
+    </div>
+   </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="/admin.js?v=20261110-p6polish"></script>
+</body>
+</html>

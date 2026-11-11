@@ -1,0 +1,1112 @@
+{
+ "region": {
+  "scope": "household",
+  "type": "string",
+  "label": "家庭所在地",
+  "meaning": "家庭所在县区，用于判断政策属地；不是户籍、务工或就学地。当前政策库仅收录江西省政策",
+  "question": "家庭所在市／县（区）全称是？（当前仅支持江西省内政策）"
+ },
+ "member_count": {
+  "scope": "household",
+  "type": "number",
+  "min": 1,
+  "max": 30,
+  "label": "家庭人数",
+  "meaning": "本户明确申报的成员总数",
+  "question": "户内共有多少名成员？",
+  "direction_allowed": false
+ },
+ "med_insured_count": {
+  "scope": "household",
+  "type": "number",
+  "max": 30,
+  "label": "医保参保人数",
+  "meaning": "本户医保参保人数，不代表养老或具体险种",
+  "question": "全家有多少人参加基本医疗保险？",
+  "direction_allowed": false
+ },
+ "annual_income": {
+  "scope": "household",
+  "type": "number",
+  "unit": "元/年/户",
+  "label": "家庭年总收入",
+  "meaning": "全家一年总收入，不能直接当月收入或人均收入",
+  "question": "家庭最近一年总收入约多少元？",
+  "profile_discovery": true,
+  "exploration_conditions": {
+   "any": [
+    {
+     "field": "medical_cost_12m",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "medical_cost_year",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "medical_cost_month",
+     "op": "gt",
+     "value": 0
+    }
+   ]
+  }
+ },
+ "medical_cost_12m": {
+  "scope": "household",
+  "type": "number",
+  "unit": "元/近12个月/户",
+  "label": "近12个月医疗自付",
+  "meaning": "近12个月家庭医疗个人负担总额，不证明由任一特定成员发生",
+  "question": "近12个月家庭医疗个人自付合计多少元？",
+  "period_anchors": [
+   "近12个月",
+   "累计12个月",
+   "过去12个月"
+  ]
+ },
+ "medical_cost_year": {
+  "scope": "household",
+  "type": "number",
+  "unit": "元/本年/户",
+  "label": "当年医疗自付",
+  "meaning": "当年家庭医疗自付，不等于近12个月",
+  "question": "本年度医疗个人自付多少元？",
+  "period_anchors": [
+   "当年",
+   "本年度",
+   "本年"
+  ]
+ },
+ "medical_cost_month": {
+  "scope": "household",
+  "type": "number",
+  "unit": "元/本月/户",
+  "label": "当月医疗自付",
+  "meaning": "当月家庭医疗自付",
+  "question": "当月医疗个人自付多少元？",
+  "period_anchors": [
+   "当月",
+   "本月"
+  ]
+ },
+ "medical_cost_basis": {
+  "scope": "household",
+  "type": "string",
+  "label": "医疗费用口径",
+  "meaning": "报销前、报销后和其他救助结算状态，保持用户原意",
+  "question": "医疗自付是报销后的个人负担吗？是否还有报销或救助未结算？",
+  "values": [
+   "报销前",
+   "报销后",
+   "部分结算"
+  ],
+  "profile_discovery": true,
+  "exploration_conditions": {
+   "any": [
+    {
+     "field": "medical_cost_12m",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "medical_cost_year",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "medical_cost_month",
+     "op": "gt",
+     "value": 0
+    }
+   ]
+  }
+ },
+ "medical_cost_owner": {
+  "scope": "household",
+  "type": "string",
+  "label": "医疗费用所属成员",
+  "meaning": "用户明确说明的成员编号及费用分配，不推测归属",
+  "question": "上述医疗费用由哪些成员发生？请注明编号及金额。",
+  "profile_discovery": true,
+  "exploration_conditions": {
+   "any": [
+    {
+     "field": "medical_cost_12m",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "medical_cost_year",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "medical_cost_month",
+     "op": "gt",
+     "value": 0
+    },
+    {
+     "field": "medical_cost_event",
+     "op": "eq",
+     "value": true
+    }
+   ]
+  }
+ },
+ "medical_cost_event": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "是否发生医疗自付事件",
+  "meaning": "用户明确报告近一年发生过医疗个人负担事件，不证明具体金额、疾病诊断或政策门槛",
+  "question": "近一年是否发生过医疗费用支出？",
+  "profile_discovery": true
+ },
+ "medical_cost_fuzzy": {
+  "scope": "household",
+  "type": "string",
+  "label": "医疗费用模糊描述",
+  "meaning": "用户用模糊语言描述的医疗费用金额或周期，保留原文，不转换为精确数值",
+  "question": "医疗费用大概是多少？（如果说不清楚具体数字，可以用大概描述）",
+  "profile_discovery": true
+ },
+ "housing_safe": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "住房安全",
+  "meaning": "明确住房无问题为true，有安全问题为false",
+  "question": "住房是否存在安全问题？请说明。",
+  "direction_allowed": true,
+  "direction_values": [
+   false
+  ]
+ },
+ "water_safe": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "饮水安全",
+  "meaning": "明确饮水无问题为true，有问题为false",
+  "question": "饮水是否安全？",
+  "direction_allowed": true,
+  "direction_values": [
+   false
+  ]
+ },
+ "disaster_loss": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "因灾损失",
+  "meaning": "明确无灾损为false，不能把未提及当作无",
+  "question": "是否发生因灾损失？如有请说明。",
+  "policy_evidence_pattern": "灾|洪水|地震|事故"
+ },
+ "dibao": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "低保身份",
+  "meaning": "家庭整体被纳入最低生活保障的明确自述；仅说明家庭中某人低保不等于全户或其他成员低保。非脱贫不能推导有或无低保，不自动推导本人低保。",
+  "question": "家庭是否已纳入城乡最低生活保障？",
+  "household_evidence_terms": [
+   "低保家庭",
+   "低保户",
+   "家庭",
+   "全户",
+   "整户"
+  ],
+  "policy_evidence_pattern": "低保|最低生活保障"
+ },
+ "tekun": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "特困身份",
+  "meaning": "家庭中存在已明确认定特困供养的成员；这是家庭层面线索，不证明任何指定成员本人特困。本人身份使用member_tekun。",
+  "question": "家庭或相关成员是否已认定为特困供养对象？请注明成员。",
+  "household_evidence_terms": [
+   "特困家庭",
+   "特困户",
+   "家庭",
+   "全户",
+   "整户"
+  ],
+  "policy_evidence_pattern": "特困"
+ },
+ "poverty_exit": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "脱贫身份",
+  "meaning": "家庭明确为脱贫户，非脱贫户为false；不自动证明任何指定成员个人脱贫人口身份，个人身份使用成员字段。",
+  "question": "家庭是否属于脱贫户？",
+  "household_evidence_terms": [
+   "脱贫户",
+   "脱贫家庭",
+   "家庭",
+   "全户",
+   "整户"
+  ],
+  "policy_evidence_pattern": "脱贫"
+ },
+ "monitoring": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "监测身份",
+  "meaning": "家庭被认定为防止返贫致贫监测户；不自动证明某名成员本人被纳入监测对象，个人身份使用成员字段。",
+  "question": "家庭是否已认定为防止返贫致贫监测对象？",
+  "household_evidence_terms": [
+   "监测户",
+   "监测家庭",
+   "家庭",
+   "全户",
+   "整户"
+  ],
+  "policy_evidence_pattern": "监测|防止返贫致贫"
+ },
+ "age": {
+  "scope": "member",
+  "type": "number",
+  "max": 120,
+  "unit": "周岁",
+  "label": "年龄",
+  "meaning": "本成员的周岁年龄。",
+  "question": "年龄是多少周岁？",
+  "inference_notes": "该成员年龄，不能据年龄推断在读、性别、怀孕",
+  "direction_min": 0
+ },
+ "sex": {
+  "scope": "member",
+  "type": "string",
+  "values": [
+   "男",
+   "女"
+  ],
+  "label": "性别",
+  "meaning": "仅用户明确说明的性别",
+  "question": "性别是？"
+ },
+ "disabled": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "残疾事实",
+  "meaning": "本成员是否有残疾事实。",
+  "question": "是否有残疾情况？",
+  "exploration_conditions": {
+   "any": [
+    {
+     "field": "disability_grade",
+     "op": "gte",
+     "value": 1
+    },
+    {
+     "field": "disability_type",
+     "op": "exists",
+     "value": null
+    },
+    {
+     "field": "disability_certificate_valid",
+     "op": "eq",
+     "value": true
+    },
+    {
+     "field": "long_term_care",
+     "op": "eq",
+     "value": true
+    }
+   ]
+  },
+  "inference_notes": "本成员有无残疾事实；健康不自动等同无残疾",
+  "policy_evidence_pattern": "残疾"
+ },
+ "disability_grade": {
+  "scope": "member",
+  "type": "number",
+  "min": 1,
+  "max": 4,
+  "label": "残疾等级",
+  "meaning": "本成员已认定的残疾等级；一级为1、二级为2、三级为3、四级为4。",
+  "question": "已认定的残疾等级是几级？",
+  "exploration_requires": [
+   "disabled",
+   "disability_grade"
+  ],
+  "direction_allowed": true,
+  "profile_discovery": true,
+  "exploration_conditions": {
+   "field": "disabled",
+   "op": "eq",
+   "value": true
+  },
+  "inference_notes": "一二三四级对应1、2、3、4，是否重度须有政策定义依据"
+ },
+ "disability_type": {
+  "scope": "member",
+  "type": "string",
+  "label": "残疾类型",
+  "meaning": "肢体、视力、听力等用户明确类型，不把肢体推断为下肢",
+  "question": "残疾类型是什么？",
+  "values": [
+   "肢体残疾",
+   "视力残疾",
+   "听力残疾",
+   "言语残疾",
+   "智力残疾",
+   "精神残疾",
+   "多重残疾"
+  ],
+  "profile_discovery": true,
+  "exploration_conditions": {
+   "field": "disabled",
+   "op": "eq",
+   "value": true
+  }
+ },
+ "lower_limb_disability": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "下肢残疾",
+  "meaning": "明确涉及下肢，肢体残疾不足以证明",
+  "question": "肢体残疾是否涉及下肢？",
+  "exploration_requires": [
+   "disabled",
+   "lower_limb_disability"
+  ],
+  "exploration_conditions": {
+   "any": [
+    {
+     "field": "disability_type",
+     "op": "in",
+     "value": [
+      "肢体残疾",
+      "多重残疾"
+     ]
+    },
+    {
+     "field": "lower_limb_disability",
+     "op": "eq",
+     "value": true
+    },
+    {
+     "field": "motor_wheelchair",
+     "op": "eq",
+     "value": true
+    }
+   ]
+  }
+ },
+ "disability_certificate": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "持有残疾人证",
+  "meaning": "本成员是否持有残疾人证。",
+  "question": "是否已持有残疾人证？无需上传。",
+  "exploration_requires": [
+   "disabled",
+   "disability_certificate"
+  ],
+  "direction_allowed": false,
+  "inference_notes": "用户自述持证情况，不要求上传证明",
+  "source_terms_all": [
+   [
+    "残疾人证",
+    "残疾证"
+   ]
+  ],
+  "positive_claim_patterns": [
+   "(?<!未)(?<!没)(?<!不)(?<!没有)(?:持有|持|拥有|办有|已办理)[^，。！？；\\n]{0,16}残疾(?:人)?证"
+  ]
+ },
+ "long_term_care": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "长期照护需求",
+  "meaning": "本成员是否实际需要长期照护。",
+  "question": "日常生活是否需要长期照护？",
+  "profile_discovery": true,
+  "exploration_conditions": {
+   "any": [
+    {
+     "field": "disabled",
+     "op": "eq",
+     "value": true
+    },
+    {
+     "field": "major_disease",
+     "op": "eq",
+     "value": true
+    },
+    {
+     "field": "chronic_disease",
+     "op": "eq",
+     "value": true
+    }
+   ]
+  },
+  "inference_notes": "是否需要长期照护，不从二级残疾自动推断"
+ },
+ "motor_wheelchair": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "已购机动轮椅车",
+  "meaning": "实际已购买机动轮椅车，不能从残疾事实推断",
+  "question": "是否已经购买机动轮椅车？",
+  "exploration_requires": [
+   "disabled",
+   "lower_limb_disability",
+   "motor_wheelchair"
+  ],
+  "exploration_conditions": {
+   "any": [
+    {
+     "field": "lower_limb_disability",
+     "op": "eq",
+     "value": true
+    },
+    {
+     "field": "motor_wheelchair",
+     "op": "eq",
+     "value": true
+    }
+   ]
+  }
+ },
+ "local_hukou": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "本县区户籍",
+  "meaning": "相对于已确认家庭所在县区的户籍，居住地不能证明",
+  "question": "是否具有家庭所在县／区的本地户籍？",
+  "direction_allowed": false,
+  "relative_to": "household:region"
+ },
+ "hukou_region": {
+  "scope": "member",
+  "type": "string",
+  "label": "户籍所在地",
+  "meaning": "用户明确户籍县区，不是居住地",
+  "question": "户籍在哪个县／区？",
+  "direction_allowed": false
+ },
+ "med_insured": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "医保参保",
+  "meaning": "本成员是否参加基本医疗保险。",
+  "question": "目前是否参加基本医疗保险？",
+  "inference_notes": "是否参加基本医疗保险，不能证明具体险种或养老参保",
+  "direction_allowed": false
+ },
+ "med_type": {
+  "scope": "member",
+  "type": "string",
+  "values": [
+   "城乡居民医保",
+   "职工医保",
+   "未参保"
+  ],
+  "label": "医保险种",
+  "meaning": "本成员实际医保类型",
+  "question": "参加的是城乡居民医保还是职工医保？未参保可直接说明。",
+  "direction_allowed": false
+ },
+ "pension_status": {
+  "scope": "member",
+  "type": "string",
+  "values": [
+   "居民养老参保",
+   "职工养老参保",
+   "已领取养老金",
+   "未参保"
+  ],
+  "label": "养老保险状态",
+  "meaning": "养老参保与领取养老金分开。仅说享受养老保险、参加养老保险不能证明已领取养老金，未说明类型保持未知。",
+  "question": "养老保险目前是参保、已领取养老金，还是未参保？请说明类型。",
+  "value_evidence_patterns": {
+   "已领取养老金": "(?:领取|领到|领着|发放|领了|每月领).{0,12}(?:养老金|退休金|养老保险金)|(?:养老金|退休金|养老保险金).{0,8}(?:领取|到账|发放)",
+   "居民养老参保": "居民.{0,8}养老|养老.{0,8}居民",
+   "职工养老参保": "职工.{0,8}养老|养老.{0,8}职工",
+   "未参保": "(?:未|没|不).{0,6}(?:参保|参加|缴纳)|无养老保险"
+  }
+ },
+ "enrolled": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "是否在读",
+  "meaning": "明确在校或在读状态，不能从年龄直接推断",
+  "question": "目前是否在校或在读？如是请同时说明学段。",
+  "profile_discovery": true,
+  "exploration_conditions": {
+   "any": [
+    {
+     "field": "age",
+     "op": "between",
+     "value": [
+      3,
+      25
+     ]
+    },
+    {
+     "field": "education_interest",
+     "op": "eq",
+     "value": true
+    }
+   ]
+  }
+ },
+ "study_stage": {
+  "scope": "member",
+  "type": "string",
+  "label": "在读学段",
+  "meaning": "本成员明确学段，不能从年龄自动推断",
+  "question": "目前就读什么学段？",
+  "exploration_requires": [
+   "enrolled",
+   "study_stage"
+  ],
+  "profile_discovery": true,
+  "exploration_conditions": {
+   "field": "enrolled",
+   "op": "eq",
+   "value": true
+  }
+ },
+ "pregnant": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "怀孕状态",
+  "meaning": "目前明确怀孕，备孕、年龄、女性不证明已怀孕",
+  "question": "目前是否怀孕？",
+  "exploration_requires": [
+   "pregnant",
+   "pregnancy_weeks",
+   "pregnancy_interest"
+  ],
+  "policy_evidence_pattern": "孕|妊娠"
+ },
+ "pregnancy_weeks": {
+  "scope": "member",
+  "type": "number",
+  "max": 45,
+  "unit": "周",
+  "label": "孕周",
+  "meaning": "本成员明确怀孕周数",
+  "question": "目前孕周是多少？",
+  "exploration_requires": [
+   "pregnant",
+   "pregnancy_weeks",
+   "pregnancy_interest"
+  ]
+ },
+ "gene_tested": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "地贫基因检测",
+  "meaning": "是否已经做过地中海贫血基因检测",
+  "question": "是否已经做过地中海贫血基因检测？",
+  "exploration_requires": [
+   "pregnant",
+   "pregnancy_weeks",
+   "pregnancy_interest"
+  ]
+ },
+ "family_planning_type": {
+  "scope": "member",
+  "type": "string",
+  "label": "计划生育家庭情况",
+  "meaning": "明确与本人相关的计划生育家庭事实：独生子女父母、双女户、子女死亡现无子女等；不从年龄推断",
+  "question": "本人有哪些计划生育家庭相关情况？没有可填无。",
+  "exploration_requires": [
+   "family_planning_type",
+   "family_planning_interest"
+  ]
+ },
+ "labor": {
+  "scope": "member",
+  "type": "string",
+  "label": "劳动能力",
+  "meaning": "全劳动力、弱或半劳动力、无劳动力等，不把弱劳动力当无劳动力",
+  "question": "劳动能力情况是什么？",
+  "values": [
+   "全劳动力",
+   "普通劳动力",
+   "技能劳动力",
+   "弱劳动力或半劳动力",
+   "无劳动力",
+   "丧失劳动力"
+  ]
+ },
+ "major_disease": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "大病情况",
+  "meaning": "本成员明确大病情况，家庭人数零可用于一致性核验",
+  "question": "是否患有大病？"
+ },
+ "chronic_disease": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "慢病情况",
+  "meaning": "本成员明确慢性病情况",
+  "question": "是否患有慢性病？"
+ },
+ "age_days": {
+  "scope": "member",
+  "type": "number",
+  "max": 3660,
+  "unit": "天",
+  "label": "出生天数",
+  "meaning": "明确出生天数，不能由年龄0岁假定新生儿",
+  "question": "目前出生多少天？",
+  "exploration_conditions": {
+   "any": [
+    {
+     "field": "age",
+     "op": "eq",
+     "value": 0
+    },
+    {
+     "field": "age_days",
+     "op": "gte",
+     "value": 0
+    }
+   ]
+  }
+ },
+ "job_status": {
+  "scope": "member",
+  "type": "string",
+  "label": "就业情况",
+  "meaning": "已就业、求职、退休等实际状态，不由年龄推断",
+  "question": "目前就业情况是什么？"
+ },
+ "work_region": {
+  "scope": "member",
+  "type": "string",
+  "label": "务工地点",
+  "meaning": "实际务工所在地，与家庭所在地和户籍不同",
+  "question": "目前在哪个地区务工？"
+ },
+ "pregnancy_interest": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "孕产咨询需求",
+  "meaning": "本成员明确表达孕产检查咨询需求，不能从年龄推断",
+  "question": "是否有孕产检查相关需求？",
+  "exploration_requires": [
+   "pregnant",
+   "pregnancy_weeks",
+   "pregnancy_interest"
+  ]
+ },
+ "family_planning_interest": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "计生咨询需求",
+  "meaning": "本成员明确表达计划生育家庭补助咨询需求",
+  "question": "是否需要了解计划生育家庭相关待遇？",
+  "exploration_requires": [
+   "family_planning_type",
+   "family_planning_interest"
+  ]
+ },
+ "member_dibao": {
+  "recognized_identity": true,
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人低保身份",
+  "meaning": "本人是否纳入低保，与仅说明家庭有低保对象不同",
+  "question": "本人是否已纳入最低生活保障？",
+  "policy_evidence_pattern": "低保|最低生活保障"
+ },
+ "member_tekun": {
+  "recognized_identity": true,
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人特困身份",
+  "meaning": "本成员本人是否明确认定为特困供养对象，不套用其他成员",
+  "question": "本人是否已认定为特困供养对象？",
+  "policy_evidence_pattern": "特困"
+ },
+ "disability_certificate_valid": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "残疾人证目前有效",
+  "meaning": "本成员本人是否持有目前有效的残疾人证。",
+  "question": "按你目前了解，残疾人证是否仍然有效？无需上传。",
+  "direction_allowed": false,
+  "exploration_requires": [
+   "disabled",
+   "disability_certificate",
+   "disability_certificate_valid"
+  ],
+  "implies_true": {
+   "disability_certificate": true,
+   "disabled": true
+  },
+  "inference_notes": "本成员本人持有目前有效的残疾人证；不能从仅说持有证件或仅有残疾推断证件目前有效",
+  "source_terms_all": [
+   [
+    "残疾人证",
+    "残疾证"
+   ],
+   [
+    "有效",
+    "失效",
+    "过期"
+   ]
+  ],
+  "positive_claim_patterns": [
+   "(?<!无)(?<!不)(?<!未)(?<!非)有效(?:的)?残疾(?:人)?证",
+   "残疾(?:人)?证(?:目前|当前|仍然|仍|现在)?(?:是|为)?有效"
+  ]
+ },
+ "education_interest": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "就学相关咨询需求",
+  "meaning": "本人明确表达就学或在读相关咨询需求，不由年龄推断",
+  "question": "是否有就学相关需求？"
+ },
+ "member_poverty_exit": {
+  "recognized_identity": true,
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人脱贫人口身份",
+  "meaning": "本成员本人是否被认定为脱贫人口；家庭脱贫户标签不能自动证明任何指定成员个人身份。",
+  "question": "该成员本人是否属于已认定的脱贫人口？",
+  "policy_evidence_pattern": "脱贫"
+ },
+ "member_monitoring": {
+  "recognized_identity": true,
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人监测对象身份",
+  "meaning": "本成员本人是否被认定纳入防止返贫致贫监测范围；家庭有监测对象不自动证明本人身份。",
+  "question": "该成员本人是否已纳入防止返贫致贫监测范围？",
+  "policy_evidence_pattern": "监测|防止返贫致贫"
+ },
+ "member_orphan": {
+  "recognized_identity": true,
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人孤儿认定身份",
+  "meaning": "本成员本人是否已认定为孤儿；与家庭有孤儿、正在领取孤儿生活保障不同。",
+  "question": "该成员本人是否已认定为孤儿？"
+ },
+ "member_returned_poverty": {
+  "recognized_identity": true,
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人返贫致贫人口身份",
+  "meaning": "本成员本人已认定为返贫致贫人口；与脱贫人口、脱贫户或一般监测对象不是同一身份，不自动互推。",
+  "question": "该成员本人是否已认定为返贫致贫人口？"
+ },
+ "member_unstable_poverty": {
+  "recognized_identity": true,
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人脱贫不稳定人口身份",
+  "meaning": "本成员本人已认定为脱贫不稳定人口；仅称脱贫人口、监测户不自动确认此具体类别。",
+  "question": "该成员本人是否已认定为脱贫不稳定人口？"
+ },
+ "member_marginal_poverty": {
+  "recognized_identity": true,
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人边缘易致贫人口身份",
+  "meaning": "本成员本人已认定为边缘易致贫人口；不能与低保边缘人口或一般监测户自动等同。",
+  "question": "该成员本人是否已认定为边缘易致贫人口？"
+ },
+ "member_sudden_hardship": {
+  "recognized_identity": true,
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人突发严重困难人口身份",
+  "meaning": "本成员本人已认定为突发严重困难人口；需要保留是否因病等原文附加限定，不由一次高支出自动认定。",
+  "question": "该成员本人是否已认定为突发严重困难人口？"
+ },
+ "member_orphan_basic_support": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人孤儿基本生活保障",
+  "meaning": "本成员本人是否正在享受孤儿基本生活保障政策，不能仅由孤儿身份推断已经享受。",
+  "question": "该成员本人目前是否享受孤儿基本生活保障？",
+  "direction_allowed": false
+ },
+ "member_injury_care_allowance": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人工伤保险生活护理费",
+  "meaning": "本成员本人是否正在领取工伤保险生活护理费；任何普通参保、养老金或残疾身份均不能替代这一事实。",
+  "question": "该成员本人目前是否领取工伤保险生活护理费？",
+  "direction_allowed": false
+ },
+ "disability_care_months": {
+  "scope": "member",
+  "type": "number",
+  "label": "因残疾产生照护支出的持续月数",
+  "unit": "个月",
+  "min": 0,
+  "max": 1440,
+  "meaning": "本成员因残疾产生特殊护理消费品或照护服务支出的持续月数；需要照护或弱劳动力本身不能证明具体月数。",
+  "question": "该成员因残疾产生的照护用品或服务支出已持续多少个月？",
+  "direction_allowed": false
+ },
+ "family_relationship": {
+  "scope": "member",
+  "type": "string",
+  "label": "明确家庭关系",
+  "meaning": "仅原文明示的家庭称谓及与哪位成员的关系，保留关系对象；不能从年龄、人数或成员编号推断户主、配偶或亲子关系。",
+  "question": "该成员与户主或其他成员是什么关系？"
+ },
+ "hukou_city": {
+  "scope": "member",
+  "type": "string",
+  "label": "户籍所在设区市",
+  "meaning": "本成员本人户籍所属的设区市标准名称，仅记录城市这一行政层级，如南昌市；不保存江西省南昌市等完整地址，不能由居住地推断户籍。",
+  "question": "本人的户籍属于江西省哪个设区市？",
+  "values": [
+   "南昌市",
+   "九江市",
+   "上饶市",
+   "抚州市",
+   "宜春市",
+   "吉安市",
+   "赣州市",
+   "景德镇市",
+   "萍乡市",
+   "新余市",
+   "鹰潭市",
+   "江西省以外"
+  ],
+  "direction_allowed": false
+ },
+ "second_generation_disability_certificate": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "本人持有第二代残疾人证",
+  "meaning": "本成员本人是否持有第二代中华人民共和国残疾人证；同时表达持有和第二代版本，不额外表达当前有效、未过期或已审核。",
+  "question": "本人是否持有第二代中华人民共和国残疾人证？",
+  "direction_allowed": false,
+  "source_terms_all": [
+   [
+    "第二代"
+   ],
+   [
+    "残疾人证",
+    "残疾证"
+   ]
+  ],
+  "implies_true": {
+   "disability_certificate": true,
+   "disabled": true
+  }
+ },
+ "student_difficulty_recognized": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "学生经济困难认定",
+  "meaning": "本成员已经由学校认定为家庭经济困难学生的明确自述；不等于低保、特困、脱贫或家庭收入低于某阈值。",
+  "question": "本人是否已经由学校认定为家庭经济困难学生？",
+  "policy_evidence_pattern": "经济困难|困难学生"
+ },
+ "full_time_study": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "全日制在读",
+  "meaning": "本成员明确就读全日制教育；仅本科或在读不能自动确认全日制。",
+  "question": "本人目前是否为全日制在读？"
+ },
+ "admitted_this_year": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "当年新录取",
+  "meaning": "本成员在当前自然年度新录取入学的明确自述；已经在读不能自动确认当年录取。",
+  "question": "本人是否为今年新录取入学？"
+ },
+ "employment_difficulty_recognized": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "就业困难人员认定",
+  "meaning": "本成员明确被认定或登记为就业困难人员；不代表已经就业、失业登记、外出务工或创业。",
+  "question": "本人是否已被认定或登记为就业困难人员？",
+  "policy_evidence_pattern": "就业困难"
+ },
+ "farm_crop_type": {
+  "scope": "household",
+  "type": "string",
+  "label": "种植作物类型",
+  "meaning": "家里实际种植的作物种类，多种用顿号分隔；稻谷补贴看是否种水稻，不据地区推断",
+  "question": "家里种了什么作物？（可多选，没有可填无）",
+  "values": [
+   "水稻",
+   "玉米",
+   "露天蔬菜",
+   "葡萄",
+   "油茶",
+   "中药材",
+   "茶叶",
+   "毛竹",
+   "果园",
+   "优质牧草",
+   "青贮玉米",
+   "其他"
+  ]
+ },
+ "farm_crop_area_mu": {
+  "scope": "household",
+  "type": "number",
+  "unit": "亩",
+  "label": "种植面积",
+  "meaning": "实际种植面积（亩），不把流转面积当种植面积",
+  "question": "种植面积有多少亩？"
+ },
+ "farm_facility_type": {
+  "scope": "household",
+  "type": "string",
+  "label": "农业设施类型",
+  "meaning": "新建或改扩建的农业设施种类",
+  "question": "是否新建或改扩建了农业设施？（可多选）",
+  "values": [
+   "仓储",
+   "冷库",
+   "烘干房",
+   "栏舍",
+   "孵化场",
+   "果园新建",
+   "果园低改",
+   "水产塘",
+   "其他"
+  ]
+ },
+ "farm_facility_area_sqm": {
+  "scope": "household",
+  "type": "number",
+  "unit": "平方米",
+  "label": "设施建设面积",
+  "meaning": "新建或改扩建设施的面积，平方米",
+  "question": "设施建了多大面积（平方米）？"
+ },
+ "livestock_type": {
+  "scope": "household",
+  "type": "string",
+  "label": "养殖种类",
+  "meaning": "家里实际养殖的畜禽或水产种类",
+  "question": "家里养了什么？（可多选）",
+  "values": [
+   "猪",
+   "牛",
+   "羊",
+   "鸡",
+   "鸭",
+   "鹅",
+   "水产",
+   "其他"
+  ]
+ },
+ "livestock_count": {
+  "scope": "household",
+  "type": "number",
+  "unit": "头/羽",
+  "label": "养殖数量",
+  "meaning": "养殖数量，按头或羽计",
+  "question": "养了多少头（羽）？"
+ },
+ "land_transfer_area_mu": {
+  "scope": "household",
+  "type": "number",
+  "unit": "亩",
+  "label": "流转土地面积",
+  "meaning": "新增流转土地的亩数，不把自家承包地当流转",
+  "question": "是否流转了土地？多少亩？"
+ },
+ "farmland_contract_right": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "有耕地承包权",
+  "meaning": "明确拥有耕地承包权为true，明确没有为false",
+  "question": "家里有承包的耕地吗？",
+  "direction_allowed": true,
+  "direction_values": [
+   false
+  ]
+ },
+ "new_farm_business": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "本年度新增农业经营",
+  "meaning": "本年度新增种植、养殖或设施建设为true",
+  "question": "今年是否新增了种植、养殖或设施建设？",
+  "direction_allowed": true,
+  "direction_values": [
+   false
+  ]
+ },
+ "loan_purpose": {
+  "scope": "household",
+  "type": "string",
+  "label": "贷款用途",
+  "meaning": "贷款的用途，只写用户明说用途",
+  "question": "贷款主要用来做什么？",
+  "values": [
+   "发展生产",
+   "开展经营",
+   "建房",
+   "看病",
+   "子女上学",
+   "其他"
+  ]
+ },
+ "loan_amount": {
+  "scope": "household",
+  "type": "number",
+  "unit": "元",
+  "label": "贷款金额",
+  "meaning": "贷款金额，元",
+  "question": "贷款金额是多少？"
+ },
+ "has_loan": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "有生产经营贷款",
+  "meaning": "有生产经营性贷款为true，明确没有为false",
+  "question": "家里有没有生产经营性贷款？",
+  "direction_allowed": true,
+  "direction_values": [
+   false
+  ]
+ },
+ "toilet_renovation": {
+  "scope": "household",
+  "type": "string",
+  "label": "户厕改造情况",
+  "meaning": "户厕是否按新国标改造及改造方式",
+  "question": "家里的厕所是否按新国标改造过？",
+  "values": [
+   "未改造",
+   "三格式(砖砌)",
+   "三格式(玻璃钢)",
+   "其他"
+  ]
+ },
+ "reservoir_migrant": {
+  "scope": "household",
+  "type": "boolean",
+  "label": "水库移民身份",
+  "meaning": "省水库移民系统登记在册且未核减为true",
+  "question": "是不是水库移民（省移民系统在册）？",
+  "direction_allowed": true,
+  "direction_values": [
+   false
+  ]
+ },
+ "rural_resident": {
+  "scope": "member",
+  "type": "boolean",
+  "label": "农村居民（农业户口）",
+  "meaning": "农业户口或被界定为农村居民为true，非农业为false",
+  "question": "户口是农业户口还是非农业户口？",
+  "direction_allowed": true,
+  "direction_values": [
+   false
+  ]
+ }
+}

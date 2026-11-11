@@ -1,0 +1,115 @@
+# ============================================================
+# 脱敏模板：复制为 config/model_settings.yaml 后填写
+#   cp config/model_settings.example.yaml config/model_settings.yaml
+#   chmod 600 config/model_settings.yaml
+# 真实 api_key 只写在本机文件里，禁止提交 GitHub。
+# ============================================================
+DEFAULT_LLM_MODEL: qwen-plus
+DEFAULT_EMBED_PLATFORM: bailian
+DEFAULT_EMBEDDING_MODEL: text-embedding-v4
+Agent_MODEL: ''
+HISTORY_LEN: 3
+MAX_TOKENS: null
+TEMPERATURE: 0.7
+SUPPORT_AGENT_MODELS:
+- chatglm3-6b
+- glm-4
+- openai-api
+- Qwen-2
+- qwen2-instruct
+- gpt-3.5-turbo
+- gpt-4o
+LLM_MODEL_CONFIG:
+  preprocess_model:
+    model: ''
+    temperature: 0.05
+    max_tokens: 4096
+    history_len: 10
+    prompt_name: default
+    callbacks: false
+  llm_model:
+    model: ''
+    temperature: 0.9
+    max_tokens: 4096
+    history_len: 10
+    prompt_name: default
+    callbacks: true
+  action_model:
+    model: ''
+    temperature: 0.01
+    max_tokens: 4096
+    history_len: 10
+    prompt_name: ChatGLM3
+    callbacks: true
+  postprocess_model:
+    model: ''
+    temperature: 0.01
+    max_tokens: 4096
+    history_len: 10
+    prompt_name: default
+    callbacks: true
+  image_model:
+    model: sd-turbo
+    size: 256*256
+MODEL_PLATFORMS:
+- platform_name: bailian
+  platform_type: openai
+  api_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api_key: CHANGE_ME_YOUR_DASHSCOPE_API_KEY
+  api_proxy: ''
+  api_concurrencies: 5
+  auto_detect_model: false
+  llm_models:
+  - qwen-plus
+  embed_models:
+  - text-embedding-v4
+  text2image_models: []
+  image2text_models: []
+  rerank_models:
+  - qwen3.7-text-rerank
+  speech2text_models: []
+  text2speech_models: []
+  profile:
+    embed_dim: 1536
+    rerank_endpoint: ''
+    quality_tier: high
+# 本地嵌入 / 重排平台（端口与 deploy/start.sh 拉起的本地模型服务对应）
+- platform_name: local-qwen3-emb
+  platform_type: openai
+  api_base_url: http://127.0.0.1:8095/v1
+  api_key: EMPTY
+  api_proxy: ''
+  api_concurrencies: 1
+  auto_detect_model: false
+  llm_models: []
+  embed_models:
+  - qwen3-embedding-4b
+  text2image_models: []
+  image2text_models: []
+  rerank_models:
+  - qwen3-reranker-4b
+  speech2text_models: []
+  text2speech_models: []
+  profile:
+    embed_dim: 2560
+    rerank_endpoint: http://127.0.0.1:8096/v1/rerank
+    quality_tier: high
+    embed_query_instruction: ''
+- platform_name: 本地Qwen3.6-35B
+  api_base_url: http://127.0.0.1:8081/v1
+  api_key: local-only
+  llm_models:
+  - qwen3.6-35b-a3b
+  embed_models: []
+  rerank_models: []
+  profile:
+    json_mode: true
+- platform_name: 本地Qwen3.6-MoE
+  api_base_url: http://127.0.0.1:8082/v1
+  api_key: local-only
+  llm_models:
+  - qwen3.6-moe-local
+  embed_models: []
+  rerank_models: []
+  profile:
+    json_mode: true

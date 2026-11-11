@@ -1,0 +1,14 @@
+======================================================================
+TURN 1: 我家两口人，江西省萍乡市莲花县，农村户口。母亲李某58岁，有低保。我本人30岁。
+codes: ['X-CY-301', 'X-ZB-462']
+members: [{"member_no": 1, "name": null, "fields": {"core_age": 30}, "raw": []}, {"member_no": 2, "name": null, "fields": {"core_age": 58}, "raw": []}]
+Q1: ['core|household|disaster_loss', 'core|household|enrolled', 'core|household|medical_cost_event']
+
+======================================================================
+TURN 2: 李某无残疾，也没有残疾证。
+codes: ['X-CY-301']
+members: [{"no": 1, "name": null, "fields": {"core_age": 30}, "survey_complete": false}, {"no": 2, "name": null, "fields": {"core_age": 58}, "survey_complete": false}]
+Q2 KEYS: ['core|household|monitoring', 'core|household|poverty_exit', 'core|1|member_poverty_exit']
+   - core|household|monitoring | 家庭：家庭是否已认定为防止返贫致贫监测对象？
+   - core|household|poverty_exit | 家庭：家庭是否属于脱贫户？
+   - core|1|member_poverty_exit | 成员1：该成员本人是否属于已认定的脱贫人口？

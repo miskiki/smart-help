@@ -1,0 +1,49 @@
+# 政策自动管理（policy_core.autopilot）cron 模板 —— 参考用，不会自动安装。
+#
+# 安装：按需修改下方路径/时间后，`crontab -e` 粘贴，或 `crontab deploy/policy_autopilot.cron.example`。
+# 运行账户：建议与 web 服务同账户（adminroot），否则 deploy/web.env 的数据库配置读不到。
+# 日志目录：先 `mkdir -p /home/adminroot/policy-autopilot-logs`；日志按日切分可交给 logrotate。
+#
+# 默认全部 dry-run（只读报告，不写库）；只有加 --apply 且显式设置 POLICY_AUTOPILOT=1 才会写库。
+# --apply 的写范围仅限本模块负责的列/队列表（已过期政策停用、rule job 入队/重置、outbox 由
+# policy_worker 消费），不会直接同步向量/规则/图谱，也绝不触发 LLM。
+#
+# 灰度纪律（--apply 前必读）：
+#   1. 先看 dry-run 报告：policy_total / counts / issue_total 与预期一致再谈写；
+#   2. 先在灰度实例（deploy/gray_up.sh 那套环境）用 --apply 验证，一次只放开一个任务，
+#      观察至少 24 小时；生产全量放开前备份 policy / policy_detail；
+#   3. 确认 outbox 消费者在跑（POLICY_WORKER=1 + policy_worker 线程存活），否则事件积压；
+#   4. 任何异常先注释掉对应 cron 行（不要留半开状态），再从 dry-run 重新评估。
+#
+# 命令行入口：deploy/policy_autopilot.py（子命令 all + 6 任务；--json 机器可读；
+# --url 可覆盖数据库地址；默认读 deploy/web.env，可用 POLICY_ENV_FILE 指向灰度 env）。
+
+SHELL=/bin/bash
+LOG_DIR=/home/adminroot/policy-autopilot-logs
+PY=/home/adminroot/miniconda3/envs/smart-help-web/bin/python
+REPO=/home/adminroot/smart-help
+
+# 每小时 :07 —— 只读质量巡检 + outbox 依赖探测（dry-run，不写库）
+7 * * * * cd $REPO && $PY deploy/policy_autopilot.py health-check --json >> $LOG_DIR/health.log 2>&1
+9 * * * * cd $REPO && $PY deploy/policy_autopilot.py outbox-drain --json >> $LOG_DIR/outbox.log 2>&1
+
+# 每日 03:10 —— 过期/临期扫描（dry-run 只报告；生产确需停用时见下方注释的 --apply）
+10 3 * * * cd $REPO && $PY deploy/policy_autopilot.py expire-scan --days 30 --json >> $LOG_DIR/expire.log 2>&1
+
+# 每周一 03:20 —— 全国覆盖报告（只读）
+20 3 * * 1 cd $REPO && $PY deploy/policy_autopilot.py coverage-report --json >> $LOG_DIR/coverage.log 2>&1
+
+# 每月 1 日 03:15 —— 滞留草稿（>72h 未确认，只读）
+15 3 1 * * cd $REPO && $PY deploy/policy_autopilot.py stale-draft --hours 72 --json >> $LOG_DIR/stale-draft.log 2>&1
+
+# 可选：缺规则县区巡检（dry-run 只列缺口；--apply 只入队 policy_rule_job，不触发编译）
+# 45 4 * * * cd $REPO && $PY deploy/policy_autopilot.py rule-requeue --json >> $LOG_DIR/rule-requeue.log 2>&1
+
+# 可选：受控写库示例（确认 dry-run 报告并完成灰度后，再逐条取消注释；一次只开一个任务）
+# 关键：--apply 必须配合 POLICY_AUTOPILOT=1，否则 CLI 直接拒绝（返回码 2）
+# POLICY_AUTOPILOT=1 时：
+# 10 3 * * * cd $REPO && POLICY_AUTOPILOT=1 $PY deploy/policy_autopilot.py expire-scan --apply --days 30 --json >> $LOG_DIR/expire-apply.log 2>&1
+# 45 4 * * * cd $REPO && POLICY_AUTOPILOT=1 $PY deploy/policy_autopilot.py rule-requeue --apply --limit 20 --json >> $LOG_DIR/rule-requeue-apply.log 2>&1
+#
+# 可选：防止同一任务叠加执行（cron 间隔短于运行时长时）
+# 7 * * * * /usr/bin/flock -n /tmp/policy-autopilot-health.lock bash -c 'cd /home/adminroot/smart-help && /home/adminroot/miniconda3/envs/smart-help-web/bin/python deploy/policy_autopilot.py health-check --json >> /home/adminroot/policy-autopilot-logs/health.log 2>&1'

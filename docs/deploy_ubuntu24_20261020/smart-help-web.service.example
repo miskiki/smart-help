@@ -1,0 +1,26 @@
+[Unit]
+Description=Smart Help full-library Web service
+After=network-online.target smart-help-model.service
+Wants=network-online.target
+Requires=smart-help-model.service
+# Kingbase unit name is installation-specific. Add its verified name if required.
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=adminroot
+Group=adminroot
+WorkingDirectory=/home/adminroot/smart-help/Langchain-Chatchat-master/admin_panel
+EnvironmentFile=/home/adminroot/smart-help/deploy/web.env
+ExecStartPre=/home/adminroot/miniforge3/envs/smart-help-web/bin/python /home/adminroot/smart-help/deploy/wait_models.py
+ExecStart=/home/adminroot/miniforge3/envs/smart-help-web/bin/gunicorn --bind 127.0.0.1:5000 --workers 1 --worker-class gthread --threads 2 --timeout 600 --graceful-timeout 30 --access-logfile - --error-logfile - app:app
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=180
+TimeoutStopSec=60
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

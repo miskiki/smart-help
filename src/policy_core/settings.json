@@ -1,0 +1,11 @@
+{
+  "enabled": false,
+  "compiler_strategy": "direct",
+  "pilot_categories": ["健康帮扶"],
+  "pilot_subjects": ["残疾"],
+  "publisher_workers": 2,
+  "publisher_batch_size": 4,
+  "max_rounds": 3,
+  "max_questions": 6,
+  "scan_seconds": 300
+}
